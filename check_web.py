@@ -17,16 +17,27 @@
 
 import urllib                          # http://docs.python.org/library/httplib.htm
 # http://docs.python.org/library/urllib.html?highlight=urllib
-#from optparse import OptionParser       
-import argparse # http://docs.python.org/library/argparse.html#module-argparse 
-# not yet available in Deb packages for python3 :-(
-
+import argparse
 
 
 
 ########################################## ##########################################################
 # FUNCTIONS
 ########################################## ##########################################################
+def findLongestKeyAndLongestValue(aDict):
+    longest = {
+        'key'    : 0,
+        'value'  : 0
+        }
+
+    for key in aDict:
+        keyLength   = len(str(key))
+        valueLength = len(str(aDict[key]))
+        if keyLength > longest['key']:
+            longest['key'] = keyLength
+        if valueLength > longest['value']:
+            longest['value'] = valueLength
+    return longest
 
 ########################################## ##########################################################
 # /FUNCTIONS
@@ -48,21 +59,32 @@ nagiosPluginExitCode = {
 # Declare/load/check args
 myParser = argparse.ArgumentParser(description = 'Check a web page')
 
-myParser.add_argument('-u', '--url',            type = str, dest = 'url',           required = True,    help = 'URL of page to check')
-myParser.add_argument('-H', '--httpHeader',     type = str, dest = 'httpHeader',    required = False,   help = 'HTTP host header (optional)')
-myParser.add_argument('-m', '--matchString',    type = str, dest = 'matchString',   required = True,    help = 'String to search on page')
-myParser.add_argument('-w', '--warning',        type = int, dest = 'warning',       required = True,    help = 'warning threshold in ms')
-myParser.add_argument('-c', '--critical',       type = int, dest = 'critical',      required = True,    help = 'critical threshold in ms')
+myParser.add_argument('-u', '--url',            type = str, dest = 'url',               required = True,    help = 'URL of page to check')
+myParser.add_argument('-m', '--matchString',    type = str, dest = 'matchString',       required = True,    help = 'String to search on page')
+myParser.add_argument('-w', '--warning',        type = int, dest = 'warning',           required = True,    help = 'warning threshold in ms')
+myParser.add_argument('-c', '--critical',       type = int, dest = 'critical',          required = True,    help = 'critical threshold in ms')
+myParser.add_argument('-H', '--httpHostHeader', type = str, dest = 'httpHostHeader',    required = False,   help = 'HTTP host header (optional)')
 
 #myParser.add_argument('--debug', dest = 'debug', action = 'store_const', const = False, required = False)
 myParser.add_argument('--debug', action = 'store_true')
 
-#myParser.parse_args()
 
-args = myParser.parse_args()
-print args
+args    = myParser.parse_args()
+theArgs = {
+    'url'               : args.url,
+    'matchString'       : args.matchString,
+    'warning'           : args.warning,
+    'critical'          : args.critical,
+    'httpHostHeader'    : args.httpHostHeader,
+    'debug'             : args.debug
+    }
 
-#print args('url')
+
+longest = findLongestKeyAndLongestValue(theArgs)
+
+for key in theArgs:
+    print str(key).rjust(longest['key'] + 1) + str(theArgs[key]).rjust(longest['value'] + 1)
+
 
 
 
