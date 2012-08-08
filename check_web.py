@@ -9,7 +9,7 @@
 # NOTES :	1.
 #
 # COMMAND LINE :
-#	clear;./check_web.py --url=http://www.truc.biz --httpHeader="Host: www.bidule.org" --matchString="un mot" -w 2500 -c 4000 --debug
+#	clear;./check_web.py --url=http://www.truc.biz --httpHostHeader="Host: www.bidule.org" --matchString="un mot" -w 2500 -c 4000 --debug
 #
 # TODO :
 #		-
@@ -24,6 +24,15 @@ import argparse
 ########################################## ##########################################################
 # FUNCTIONS
 ########################################## ##########################################################
+def lengthOfLongestKey(aDict):
+    length = 0
+    for key in aDict:
+        keyLength   = len(str(key))
+        if keyLength > length:
+            length = keyLength
+    return length
+
+"""
 def findLongestKeyAndLongestValue(aDict):
     longest = {
         'key'    : 0,
@@ -38,6 +47,7 @@ def findLongestKeyAndLongestValue(aDict):
         if valueLength > longest['value']:
             longest['value'] = valueLength
     return longest
+"""
 
 ########################################## ##########################################################
 # /FUNCTIONS
@@ -56,7 +66,7 @@ nagiosPluginExitCode = {
 # main()
 ########################################## ##########################################################
 
-# Declare/load/check args
+# Declare/load/validate args
 myParser = argparse.ArgumentParser(description = 'Check a web page')
 
 myParser.add_argument('-u', '--url',            type = str, dest = 'url',               required = True,    help = 'URL of page to check')
@@ -64,9 +74,7 @@ myParser.add_argument('-m', '--matchString',    type = str, dest = 'matchString'
 myParser.add_argument('-w', '--warning',        type = int, dest = 'warning',           required = True,    help = 'warning threshold in ms')
 myParser.add_argument('-c', '--critical',       type = int, dest = 'critical',          required = True,    help = 'critical threshold in ms')
 myParser.add_argument('-H', '--httpHostHeader', type = str, dest = 'httpHostHeader',    required = False,   help = 'HTTP host header (optional)')
-
-#myParser.add_argument('--debug', dest = 'debug', action = 'store_const', const = False, required = False)
-myParser.add_argument('--debug', action = 'store_true')
+myParser.add_argument(      '--debug',  required = False, action = 'store_true')
 
 
 args    = myParser.parse_args()
@@ -80,15 +88,14 @@ theArgs = {
     }
 
 
-longest = findLongestKeyAndLongestValue(theArgs)
-
+#longest = findLongestKeyAndLongestValue(theArgs)
+length = lengthOfLongestKey(theArgs)
 for key in theArgs:
-    print str(key).rjust(longest['key'] + 1) + str(theArgs[key]).rjust(longest['value'] + 1)
+    print str(key).rjust(length + 1) + ': ' + str(theArgs[key])
 
 
 
 
-# validate args
 
 # enable plugin timeout + interrupt. If timeout, exit as nagios status code "unknown" + exit message
 
