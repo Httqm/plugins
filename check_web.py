@@ -24,7 +24,7 @@ import argparse
 
 
 ########################################## ##########################################################
-# FUNCTIONS
+# FUNCTIONS / CLASSES
 ########################################## ##########################################################
 def lengthOfLongestKey(aDict):
     length = 0
@@ -37,7 +37,7 @@ def lengthOfLongestKey(aDict):
 
 def getHostNameFromUrl(url):
     import re
-    match = re.search('^.*http://([^/]*)/?.*$', url)
+    match = re.search('^.*http://([^:/]*)(:|/)?.*$', url)   # TODO : should start with 'http....', no leading space allowed
     # http://docs.python.org/howto/regex#performing-matches
     if match:
         return match.group(1)
@@ -46,7 +46,7 @@ def getHostNameFromUrl(url):
 
 
 ########################################## ##########################################################
-# /FUNCTIONS
+# /FUNCTIONS / CLASSES
 # CONFIG
 ########################################## ##########################################################
 nagiosPluginExitCode = {
@@ -68,13 +68,20 @@ nagiosPluginExitCode = {
 # Declare/load/validate args
 myParser = argparse.ArgumentParser(description = 'Check a web page')
 
+# http://docs.python.org/library/argparse.html#the-add-argument-method
 myParser.add_argument('-u', '--url',            type = str, dest = 'url',               required = True,    help = 'URL of page to check with leading "http://"')
+
+myParser.add_argument('-p', '--httpPort',       type = int, dest = 'httpPort',          required = False,   help = 'HTTP port (optional. Defaults to 80)', default = 80)
+
+
 myParser.add_argument('-m', '--matchString',    type = str, dest = 'matchString',       required = True,    help = 'String to search on page')
 myParser.add_argument('-w', '--warning',        type = int, dest = 'warning',           required = True,    help = 'warning threshold in ms')
 myParser.add_argument('-c', '--critical',       type = int, dest = 'critical',          required = True,    help = 'critical threshold in ms')
 myParser.add_argument('-H', '--httpHostHeader', type = str, dest = 'httpHostHeader',    required = False,   help = 'HTTP host header (optional)')
 myParser.add_argument(      '--debug',  required = False, action = 'store_true')
 
+# TODO : refuse the URL arg if it doesn't start with "http://"
+# TODO : no port number allowed in URL
 
 args    = myParser.parse_args()
 theArgs = {
@@ -83,6 +90,7 @@ theArgs = {
     'warning'           : args.warning,
     'critical'          : args.critical,
     'httpHostHeader'    : args.httpHostHeader,
+    'httpPort'          : args.httpPort,
     'debug'             : args.debug
     }
 
@@ -108,7 +116,7 @@ print getHostNameFromUrl(args.url)
 #httpConnection = httplib.HTTPConnection('www.perdu.com', 80, timeout=10)
 httpConnection = httplib.HTTPConnection(
     getHostNameFromUrl(args.url),
-    80,
+    args.httpPort,
     timeout = 10
     )
 #TODO : host must be HTTP (no httpS) and have no leading "http://"
