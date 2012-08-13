@@ -24,7 +24,40 @@ import argparse
 
 
 ########################################## ##########################################################
-# FUNCTIONS / CLASSES
+# CLASSES
+########################################## ##########################################################
+
+class url(object):
+
+    def __init__(self, params):
+        self._value = params['value']
+        self._clean()
+
+
+    def _clean(self):
+        # http://docs.python.org/library/stdtypes.html#str.rstrip
+        self._value = self._value.lstrip().rstrip()
+        print 'CLEAN URL : "' + self._value + '"'
+
+
+    def getUrl(self):
+        return self._value
+
+
+    def getHostName(self):
+        import re
+        match = re.search('^http://([^:/]*)(:|/)?.*$', self._value)   # TODO : should start with 'http....', no leading space allowed
+        # http://docs.python.org/howto/regex#performing-matches
+        if match:
+            return match.group(1)
+        else:
+            return self._value
+
+
+
+########################################## ##########################################################
+# /CLASSES
+# FUNCTIONS
 ########################################## ##########################################################
 def lengthOfLongestKey(aDict):
     length = 0
@@ -34,7 +67,7 @@ def lengthOfLongestKey(aDict):
             length = keyLength
     return length
 
-
+"""
 def getHostNameFromUrl(url):
     import re
     match = re.search('^.*http://([^:/]*)(:|/)?.*$', url)   # TODO : should start with 'http....', no leading space allowed
@@ -43,10 +76,11 @@ def getHostNameFromUrl(url):
         return match.group(1)
     else:
         return url
+"""
 
 
 ########################################## ##########################################################
-# /FUNCTIONS / CLASSES
+# /FUNCTIONS
 # CONFIG
 ########################################## ##########################################################
 nagiosPluginExitCode = {
@@ -80,8 +114,6 @@ myParser.add_argument('-c', '--critical',       type = int, dest = 'critical',  
 myParser.add_argument('-H', '--httpHostHeader', type = str, dest = 'httpHostHeader',    required = False,   help = 'HTTP host header (optional)')
 myParser.add_argument(      '--debug',  required = False, action = 'store_true')
 
-# TODO : refuse the URL arg if it doesn't start with "http://"
-# TODO : no port number allowed in URL
 
 args    = myParser.parse_args()
 theArgs = {
@@ -93,6 +125,15 @@ theArgs = {
     'httpPort'          : args.httpPort,
     'debug'             : args.debug
     }
+
+
+# TODO : refuse the URL arg if it doesn't start with "http://"
+# TODO : no port number allowed in URL
+url = url({
+        'value' : args.url
+        })
+
+
 
 
 length = lengthOfLongestKey(theArgs)
@@ -108,14 +149,15 @@ for key in theArgs:
 # init timer
 
 
-print args.url
-print getHostNameFromUrl(args.url)
+print url.getUrl()
+print url.getHostName()
 
 # send http request (get, post, cookie, ...) with optionnal header(s)
 # http://docs.python.org/library/httplib.html#httplib.HTTPConnection
 #httpConnection = httplib.HTTPConnection('www.perdu.com', 80, timeout=10)
 httpConnection = httplib.HTTPConnection(
-    getHostNameFromUrl(args.url),
+    #getHostNameFromUrl(url.getUrl()),
+    url.getHostName(),
     args.httpPort,
     timeout = 10
     )
