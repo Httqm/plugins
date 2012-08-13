@@ -21,13 +21,18 @@ import httplib
 # http://docs.python.org/library/urllib.html?highlight=urllib
 import argparse
 
+from modules import debug
 
+debug = debug.Debug()
+
+debug.show('argl!')
+debug.die({'exitMessage': 'argl, je meurs, je meurs de facon... tragique!'})
 
 ########################################## ##########################################################
 # CLASSES
 ########################################## ##########################################################
 
-class url(object):
+class Url(object):
 
     def __init__(self, params):
         self._value = params['value']
@@ -66,17 +71,6 @@ def lengthOfLongestKey(aDict):
         if keyLength > length:
             length = keyLength
     return length
-
-"""
-def getHostNameFromUrl(url):
-    import re
-    match = re.search('^.*http://([^:/]*)(:|/)?.*$', url)   # TODO : should start with 'http....', no leading space allowed
-    # http://docs.python.org/howto/regex#performing-matches
-    if match:
-        return match.group(1)
-    else:
-        return url
-"""
 
 
 ########################################## ##########################################################
@@ -129,7 +123,7 @@ theArgs = {
 
 # TODO : refuse the URL arg if it doesn't start with "http://"
 # TODO : no port number allowed in URL
-url = url({
+url = Url({
         'value' : args.url
         })
 
