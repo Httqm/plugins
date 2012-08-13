@@ -9,13 +9,15 @@
 # NOTES :	1.
 #
 # COMMAND LINE :
-#	clear;./check_web.py --url=http://www.truc.biz --httpHostHeader="Host: www.bidule.org" --matchString="un mot" -w 2500 -c 4000 --debug
+#	clear;./check_web.py --url=http://www.perdu.com --httpHostHeader="Host: www.perdu.com" --matchString="un mot" -w 2500 -c 4000 --debug
+#	clear;./check_web.py --url=http://www.google.fr --httpHostHeader="Host: www.perdu.com" --matchString="un mot" -w 2500 -c 4000 --debug
 #
 # TODO :
 #		-
 ########################################## ##########################################################
 
-import urllib                          # http://docs.python.org/library/httplib.htm
+#import urllib                          # http://docs.python.org/library/httplib.htm
+import httplib
 # http://docs.python.org/library/urllib.html?highlight=urllib
 import argparse
 
@@ -32,22 +34,16 @@ def lengthOfLongestKey(aDict):
             length = keyLength
     return length
 
-"""
-def findLongestKeyAndLongestValue(aDict):
-    longest = {
-        'key'    : 0,
-        'value'  : 0
-        }
 
-    for key in aDict:
-        keyLength   = len(str(key))
-        valueLength = len(str(aDict[key]))
-        if keyLength > longest['key']:
-            longest['key'] = keyLength
-        if valueLength > longest['value']:
-            longest['value'] = valueLength
-    return longest
-"""
+def getHostNameFromUrl(url):
+    import re
+    match = re.search('^.*http://([^/]*)/?.*$', url)
+    # http://docs.python.org/howto/regex#performing-matches
+    if match:
+        return match.group(1)
+    else:
+        return url
+
 
 ########################################## ##########################################################
 # /FUNCTIONS
@@ -66,10 +62,13 @@ nagiosPluginExitCode = {
 # main()
 ########################################## ##########################################################
 
+
+
+
 # Declare/load/validate args
 myParser = argparse.ArgumentParser(description = 'Check a web page')
 
-myParser.add_argument('-u', '--url',            type = str, dest = 'url',               required = True,    help = 'URL of page to check')
+myParser.add_argument('-u', '--url',            type = str, dest = 'url',               required = True,    help = 'URL of page to check with leading "http://"')
 myParser.add_argument('-m', '--matchString',    type = str, dest = 'matchString',       required = True,    help = 'String to search on page')
 myParser.add_argument('-w', '--warning',        type = int, dest = 'warning',           required = True,    help = 'warning threshold in ms')
 myParser.add_argument('-c', '--critical',       type = int, dest = 'critical',          required = True,    help = 'critical threshold in ms')
@@ -88,7 +87,6 @@ theArgs = {
     }
 
 
-#longest = findLongestKeyAndLongestValue(theArgs)
 length = lengthOfLongestKey(theArgs)
 for key in theArgs:
     print str(key).rjust(length + 1) + ': ' + str(theArgs[key])
@@ -101,7 +99,33 @@ for key in theArgs:
 
 # init timer
 
+
+print args.url
+print getHostNameFromUrl(args.url)
+
 # send http request (get, post, cookie, ...) with optionnal header(s)
+# http://docs.python.org/library/httplib.html#httplib.HTTPConnection
+#httpConnection = httplib.HTTPConnection('www.perdu.com', 80, timeout=10)
+httpConnection = httplib.HTTPConnection(
+    getHostNameFromUrl(args.url),
+    80,
+    timeout = 10
+    )
+#TODO : host must be HTTP (no httpS) and have no leading "http://"
+
+#httpConnection.request('get', 'www.google.be', '', '')
+#httpConnection.request('GET', 'http://www.perdu.com')
+httpConnection.request('GET', args.url)
+
+truc=httpConnection.getresponse()
+# returns an HTTPResponse object :
+#   http://docs.python.org/library/httplib.html#httplib.HTTPResponse
+#   http://docs.python.org/library/httplib.html#httpresponse-objects
+print truc.read()
+
+
+
+
 
 # get result + HTTP exit code
 
