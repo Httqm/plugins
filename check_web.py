@@ -3,14 +3,14 @@
 ######################################### check_web.py ##############################################
 # FUNCTION :	
 #
-# AUTHOR :	Matthieu FOURNET (matthieu.fournet@orange.com)
+# AUTHOR :	Matthieu FOURNET (fournet.matthieu@gmail.com)
 # LICENSE :	GPL - http://www.fsf.org/licenses/gpl.txt
 #
 # NOTES :	1.
 #
 # COMMAND LINE :
-#	clear;./check_web.py --url=http://www.perdu.com --httpHostHeader="Host: www.perdu.com" --matchString="un mot" -w 2500 -c 4000 --debug
-#	clear;./check_web.py --url=http://www.google.fr --httpHostHeader="Host: www.perdu.com" --matchString="un mot" -w 2500 -c 4000 --debug
+#	clear;./check_web.py --url=http://www.perdu.com --httpHostHeader="www.perdu.com" --matchString="un mot" -w 2500 -c 4000 --debug
+#	clear;./check_web.py --url=http://origin-www.voici.fr --httpHostHeader="www.voici.fr" --matchString="un mot" -w 2500 -c 4000 --debug
 #
 # TODO :
 #		-
@@ -24,9 +24,6 @@ import argparse
 from modules import debug
 
 debug = debug.Debug()
-
-debug.show('argl!')
-debug.die({'exitMessage': 'argl, je meurs, je meurs de facon... tragique!'})
 
 ########################################## ##########################################################
 # CLASSES
@@ -97,31 +94,31 @@ nagiosPluginExitCode = {
 myParser = argparse.ArgumentParser(description = 'Check a web page')
 
 # http://docs.python.org/library/argparse.html#the-add-argument-method
-myParser.add_argument('-u', '--url',            type = str, dest = 'url',               required = True,    help = 'URL of page to check with leading "http://"')
+myParser.add_argument('-u', '--url',            type = str, dest = 'url',           required = True,    help = 'URL of page to check with leading "http://"')
 
-myParser.add_argument('-p', '--httpPort',       type = int, dest = 'httpPort',          required = False,   help = 'HTTP port (optional. Defaults to 80)', default = 80)
+myParser.add_argument('-p', '--httpPort',       type = int, dest = 'httpPort',      required = False,   help = 'HTTP port (optional. Defaults to 80)', default = 80)
 
 
-myParser.add_argument('-m', '--matchString',    type = str, dest = 'matchString',       required = True,    help = 'String to search on page')
-myParser.add_argument('-w', '--warning',        type = int, dest = 'warning',           required = True,    help = 'warning threshold in ms')
-myParser.add_argument('-c', '--critical',       type = int, dest = 'critical',          required = True,    help = 'critical threshold in ms')
-myParser.add_argument('-H', '--httpHostHeader', type = str, dest = 'httpHostHeader',    required = False,   help = 'HTTP host header (optional)')
+myParser.add_argument('-m', '--matchString',    type = str, dest = 'matchString',   required = True,    help = 'String to search on page')
+myParser.add_argument('-w', '--warning',        type = int, dest = 'warning',       required = True,    help = 'warning threshold in ms')
+myParser.add_argument('-c', '--critical',       type = int, dest = 'critical',      required = True,    help = 'critical threshold in ms')
+myParser.add_argument('-H', '--httpHostHeader',     type = str, dest = 'httpHostHeader',    required = False,   help = 'HTTP host header (optional)')
 myParser.add_argument(      '--debug',  required = False, action = 'store_true')
 
 
 args    = myParser.parse_args()
 theArgs = {
-    'url'               : args.url,
-    'matchString'       : args.matchString,
-    'warning'           : args.warning,
-    'critical'          : args.critical,
+    'url'           : args.url,
+    'matchString'   : args.matchString,
+    'warning'       : args.warning,
+    'critical'      : args.critical,
     'httpHostHeader'    : args.httpHostHeader,
-    'httpPort'          : args.httpPort,
-    'debug'             : args.debug
+    'httpPort'      : args.httpPort,
+    'debug'         : args.debug
     }
 
 
-# TODO : refuse the URL arg if it doesn't start with "http://"
+# TODO : refuse the URL arg if it doesn't start EXACTLY with "http://"
 # TODO : no port number allowed in URL
 url = Url({
         'value' : args.url
@@ -143,29 +140,38 @@ for key in theArgs:
 # init timer
 
 
-print url.getUrl()
-print url.getHostName()
+debug.show(
+    'URL = ' + url.getUrl() + "\n" \
+    'HOSTNAME = ' + url.getHostName() + "\n" \
+    'HOST HEADER = ' + args.httpHostHeader + "\n" \
+    'HTTP PORT = ' + str(args.httpPort)
+    )
+
+
+
 
 # send http request (get, post, cookie, ...) with optionnal header(s)
 # http://docs.python.org/library/httplib.html#httplib.HTTPConnection
 #httpConnection = httplib.HTTPConnection('www.perdu.com', 80, timeout=10)
 httpConnection = httplib.HTTPConnection(
-    #getHostNameFromUrl(url.getUrl()),
     url.getHostName(),
     args.httpPort,
     timeout = 10
     )
 #TODO : host must be HTTP (no httpS) and have no leading "http://"
 
-#httpConnection.request('get', 'www.google.be', '', '')
-#httpConnection.request('GET', 'http://www.perdu.com')
-httpConnection.request('GET', args.url)
+
+# example : http://www.dev-explorer.com/articles/using-python-httplib
+httpConnection.request('GET', '/', {}, {'Host': args.httpHostHeader})
 
 truc=httpConnection.getresponse()
 # returns an HTTPResponse object :
 #   http://docs.python.org/library/httplib.html#httplib.HTTPResponse
 #   http://docs.python.org/library/httplib.html#httpresponse-objects
 print truc.read()
+
+
+
 
 
 
