@@ -9,8 +9,8 @@
 # NOTES :	1.
 #
 # COMMAND LINE :
-#	clear;./check_web.py --url=http://www.perdu.com --httpHostHeader="www.perdu.com" --matchString="un mot" -w 2500 -c 4000 --debug
-#	clear;./check_web.py --url=http://origin-www.voici.fr --httpHostHeader="www.voici.fr" --matchString="un mot" -w 2500 -c 4000 --debug
+#	clear;./check_web.py --url="http://www.perdu.com" --httpHostHeader="www.perdu.com" --matchString="un mot" -w 2500 -c 4000 --debug
+#	clear;./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" --matchString="un mot" -w 2500 -c 4000 --debug
 #
 # TODO :
 #		-
@@ -25,35 +25,43 @@ from modules import debug
 
 debug = debug.Debug()
 
+#debug.die({'exitMessage': 'argl, je meurs, je meurs de facon... tragique!'})
 ########################################## ##########################################################
 # CLASSES
 ########################################## ##########################################################
 
+import re
+
 class Url(object):
 
     def __init__(self, params):
-        self._value = params['value']
+        self._full = params['full']
         self._clean()
 
 
     def _clean(self):
         # http://docs.python.org/library/stdtypes.html#str.rstrip
-        self._value = self._value.lstrip().rstrip()
-        print 'CLEAN URL : "' + self._value + '"'
+        self._full = self._full.lstrip().rstrip()
+        print 'CLEAN URL : "' + self._full + '"'
 
 
-    def getUrl(self):
-        return self._value
+    def getFullUrl(self):
+        return self._full
+
+
+    def getQueryUrl(self):
+        import string
+        tmp = string.replace(self._full, 'http://' + self.getHostName(), '')
+        return tmp if len(tmp) else '/'
 
 
     def getHostName(self):
-        import re
-        match = re.search('^http://([^:/]*)(:|/)?.*$', self._value)   # TODO : should start with 'http....', no leading space allowed
+        match = re.search('^http://([^:/]*)(:|/)?.*$', self._full)   # TODO : should start with 'http....', no leading space allowed
         # http://docs.python.org/howto/regex#performing-matches
         if match:
             return match.group(1)
         else:
-            return self._value
+            return self._full
 
 
 
@@ -121,11 +129,20 @@ theArgs = {
 # TODO : refuse the URL arg if it doesn't start EXACTLY with "http://"
 # TODO : no port number allowed in URL
 url = Url({
-        'value' : args.url
+        'full' : args.url
         })
 
 
 
+debug.show(
+    'URL (full) = ' + url.getFullUrl() + "\n" \
+    'URL (query) = ' + url.getQueryUrl() + "\n" \
+    'HOSTNAME = ' + url.getHostName() + "\n" \
+    'HOST HEADER = ' + args.httpHostHeader + "\n" \
+    'HTTP PORT = ' + str(args.httpPort)
+    )
+
+debug.die({'exitMessage': 'argl, je meurs, je meurs de facon... tragique!'})
 
 length = lengthOfLongestKey(theArgs)
 for key in theArgs:
@@ -140,12 +157,6 @@ for key in theArgs:
 # init timer
 
 
-debug.show(
-    'URL = ' + url.getUrl() + "\n" \
-    'HOSTNAME = ' + url.getHostName() + "\n" \
-    'HOST HEADER = ' + args.httpHostHeader + "\n" \
-    'HTTP PORT = ' + str(args.httpPort)
-    )
 
 
 
