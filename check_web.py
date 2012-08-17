@@ -11,6 +11,7 @@
 # COMMAND LINE :
 #	clear;./check_web.py --url="http://www.perdu.com" --httpHostHeader="www.perdu.com" --matchString="un mot" -w 2500 -c 4000 --debug
 #	clear;./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" --matchString="un mot" -w 2500 -c 4000 --debug
+#	clear;./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" --httpMethod=get --matchString="un mot" -w 2500 -c 4000 --debug
 #
 # TODO :
 #		-
@@ -31,6 +32,89 @@ debug = debug.Debug()
 ########################################## ##########################################################
 
 import re
+
+class nagiosPlugin(object):
+
+    def __init__(self):
+        self._exitCodes = {
+            0: 'OK',
+            1: 'WARNING',
+            2: 'CRITICAL',
+            3: 'UNKNOWN'
+            }
+
+        import argparse
+        self._argParser = argparse.ArgumentParser(description = 'Check a web page') # TODO : this is not GENERIC !
+        self._argList   = []
+
+
+    def addArg(self, argData):
+        """
+        'shortOption'   : 'u',
+        'longOption'    : 'url',
+        'type'          : str,
+        'required'      : True,
+        'help'          : 'URL of page to check with leading "http://"'
+
+
+        myParser.add_argument('-u', '--url',  type = str, dest = 'url',           required = True,    help = 'URL of page to check with leading "http://"')
+        """
+
+        # http://docs.python.org/library/argparse.html#the-add-argument-method
+        self._argParser.add_argument(
+            '-'     + argData['shortOption'],
+            '--'    + argData['longOption'],
+            type        = argData['type'],
+            dest        = argData['longOption'],
+            required    = argData['required'],
+            default     = argData['default'],
+            help        = argData['help']
+            )
+
+        self._argList.append(argData['longOption'])
+
+
+    def addArgDebug(self):
+        self._argParser.add_argument(
+            '--debug',
+            required    = False,
+            action      = 'store_true',
+            help        = 'Toggle debug messages'
+            )
+        self._argList.append('debug')
+
+
+    def readArgs(self):
+        self._args = self._argParser.parse_args()
+        # TODO : check args ?
+
+
+    def showArgs(self):
+#        print self._argList
+        truc = utility()
+        length = truc.lengthOfLongestKey(self._argList)
+        for key in self._argList:
+            print str(key).rjust(length + 1) + ': ' + str(getattr(self._args, key))
+
+
+    def _checkArgs(self):
+        pass
+
+
+    def addPerfData(self):
+        pass
+
+
+    def exit(self):
+        pass
+
+
+
+class check_web(nagiosPlugin):
+
+    def getPage(self):
+        pass
+
 
 class Url(object):
 
@@ -64,11 +148,22 @@ class Url(object):
             return self._full
 
 
+class utility(object):
+
+    def lengthOfLongestKey(self, aDict):
+        length = 0
+        for key in aDict:
+            keyLength   = len(str(key))
+            if keyLength > length:
+                length = keyLength
+        return length
+
 
 ########################################## ##########################################################
 # /CLASSES
 # FUNCTIONS
 ########################################## ##########################################################
+"""
 def lengthOfLongestKey(aDict):
     length = 0
     for key in aDict:
@@ -76,18 +171,13 @@ def lengthOfLongestKey(aDict):
         if keyLength > length:
             length = keyLength
     return length
+"""
 
 
 ########################################## ##########################################################
 # /FUNCTIONS
 # CONFIG
 ########################################## ##########################################################
-nagiosPluginExitCode = {
-    0: 'OK',
-    1: 'WARNING',
-    2: 'CRITICAL',
-    3: 'UNKNOWN'
-    }
 
 
 ########################################## ##########################################################
@@ -95,18 +185,88 @@ nagiosPluginExitCode = {
 # main()
 ########################################## ##########################################################
 
+plugin = check_web()
 
+plugin.addArg({
+        'shortOption'   : 'u',
+        'longOption'    : 'url',
+        'type'          : str,
+        'required'      : True,
+        'default'       : None,
+        'help'          : 'URL of page to check with leading "http://"'
+        })
+
+plugin.addArg({
+        'shortOption'   : 'p',
+        'longOption'    : 'httpPort',
+        'type'          : str,
+        'required'      : False,
+        'default'       : 80,
+        'help'          : 'HTTP port (optional. Defaults to 80)',
+        })
+
+plugin.addArg({
+        'shortOption'   : 'M',
+        'longOption'    : 'httpMethod',
+        'type'          : str,
+        'required'      : False,
+        'default'       : 'GET',
+        'help'          : 'HTTP method (optional. Defaults to GET)',
+        })
+
+plugin.addArg({
+        'shortOption'   : 'm',
+        'longOption'    : 'matchString',
+        'type'          : str,
+        'required'      : True,
+        'default'       : None,
+        'help'          : 'String to search on page',
+        })
+
+plugin.addArg({
+        'shortOption'   : 'w',
+        'longOption'    : 'warning',
+        'type'          : int,
+        'required'      : True,
+        'default'       : None,
+        'help'          : 'warning threshold in ms',
+        })
+
+plugin.addArg({
+        'shortOption'   : 'c',
+        'longOption'    : 'critical',
+        'type'          : int,
+        'required'      : True,
+        'default'       : None,
+        'help'          : 'warning threshold in ms',
+        })
+
+plugin.addArg({
+        'shortOption'   : 'H',
+        'longOption'    : 'httpHostHeader',
+        'type'          : str,
+        'required'      : True,
+        'default'       : None,
+        'help'          : 'HTTP host header (optional)',
+        })
+
+
+plugin.addArgDebug()
+
+plugin.readArgs()
+plugin.showArgs()
+
+
+debug.die({'exitMessage': 'argl, je meurs, je meurs de facon... tragique!'})
 
 
 # Declare/load/validate args
 myParser = argparse.ArgumentParser(description = 'Check a web page')
 
 # http://docs.python.org/library/argparse.html#the-add-argument-method
-myParser.add_argument('-u', '--url',            type = str, dest = 'url',           required = True,    help = 'URL of page to check with leading "http://"')
-
-myParser.add_argument('-p', '--httpPort',       type = int, dest = 'httpPort',      required = False,   help = 'HTTP port (optional. Defaults to 80)', default = 80)
-
-
+myParser.add_argument('-u', '--url',         type = str, dest = 'url',           required = True,    help = 'URL of page to check with leading "http://"')
+myParser.add_argument('-p', '--httpPort', type = int, dest = 'httpPort', required = False,   help = 'HTTP port (optional. Defaults to 80)', default = 80)
+myParser.add_argument('-M', '--httpMethod',     type = str, dest = 'httpMethod',      required = False,   help = 'HTTP method (optional. Defaults to GET)', default = 'GET')
 myParser.add_argument('-m', '--matchString',    type = str, dest = 'matchString',   required = True,    help = 'String to search on page')
 myParser.add_argument('-w', '--warning',        type = int, dest = 'warning',       required = True,    help = 'warning threshold in ms')
 myParser.add_argument('-c', '--critical',       type = int, dest = 'critical',      required = True,    help = 'critical threshold in ms')
@@ -116,13 +276,14 @@ myParser.add_argument(      '--debug',  required = False, action = 'store_true')
 
 args    = myParser.parse_args()
 theArgs = {
-    'url'           : args.url,
-    'matchString'   : args.matchString,
-    'warning'       : args.warning,
-    'critical'      : args.critical,
+    'url'               : args.url,
+    'matchString'       : args.matchString,
+    'warning'           : args.warning,
+    'critical'          : args.critical,
     'httpHostHeader'    : args.httpHostHeader,
-    'httpPort'      : args.httpPort,
-    'debug'         : args.debug
+    'httpPort'          : args.httpPort,
+    'httpMethod'        : args.httpMethod,
+    'debug'             : args.debug
     }
 
 
@@ -142,13 +303,13 @@ debug.show(
     'HTTP PORT = ' + str(args.httpPort)
     )
 
-debug.die({'exitMessage': 'argl, je meurs, je meurs de facon... tragique!'})
 
 length = lengthOfLongestKey(theArgs)
 for key in theArgs:
     print str(key).rjust(length + 1) + ': ' + str(theArgs[key])
 
 
+#debug.die({'exitMessage': 'argl, je meurs, je meurs de facon... tragique!'})
 
 
 
@@ -173,13 +334,22 @@ httpConnection = httplib.HTTPConnection(
 
 
 # example : http://www.dev-explorer.com/articles/using-python-httplib
-httpConnection.request('GET', '/', {}, {'Host': args.httpHostHeader})
+#httpConnection.request('GET', '/', {}, {'Host': args.httpHostHeader})
+httpConnection.request(
+#    args.httpMethod,
+    'POST',
+    '/',
+    {},
+    {'Host': args.httpHostHeader}
+    )
 
-truc=httpConnection.getresponse()
+
+httpResponse = httpConnection.getresponse()
 # returns an HTTPResponse object :
 #   http://docs.python.org/library/httplib.html#httplib.HTTPResponse
 #   http://docs.python.org/library/httplib.html#httpresponse-objects
-print truc.read()
+
+#print httpResponse.read()
 
 
 
