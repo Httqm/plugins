@@ -56,7 +56,6 @@ class nagiosPlugin(object):
             default     = argData['default'],
             help        = argData['help']
             )
-
         self._argList.append(argData['longOption'])
 
 
@@ -81,6 +80,10 @@ class nagiosPlugin(object):
         length = truc.lengthOfLongestKey(self._argList)
         for key in self._argList:
             print str(key).rjust(length + 1) + ': ' + str(getattr(self._args, key))
+
+
+    def getArgValue(self, argName):
+        return getattr(self._args, argName)
 
 
     def _checkArgs(self):
@@ -228,7 +231,6 @@ plugin.readArgs()
 plugin.showArgs()
 
 
-debug.die({'exitMessage': 'argl, je meurs, je meurs de facon... tragique!'})
 
 """
 # Declare/load/validate args
@@ -259,12 +261,16 @@ theArgs = {
 """
 
 
+print 'url = ' + plugin.getArgValue('url')
+
+
 # TODO : refuse the URL arg if it doesn't start EXACTLY with "http://"
 # TODO : no port number allowed in URL
 url = Url({
-        'full' : args.url
+        'full' : plugin.getArgValue('url')
         })
 
+#debug.die({'exitMessage': 'ARGL !'})
 
 """
 
@@ -301,7 +307,8 @@ for key in theArgs:
 #httpConnection = httplib.HTTPConnection('www.perdu.com', 80, timeout=10)
 httpConnection = httplib.HTTPConnection(
     url.getHostName(),
-    args.httpPort,
+    #    args.httpPort,
+    plugin.getArgValue('httpPort'),
     timeout = 10
     )
 #TODO : host must be HTTP (no httpS) and have no leading "http://"
@@ -311,10 +318,11 @@ httpConnection = httplib.HTTPConnection(
 #httpConnection.request('GET', '/', {}, {'Host': args.httpHostHeader})
 httpConnection.request(
 #    args.httpMethod,
-    'POST',
+#    'POST',
+    plugin.getArgValue('httpMethod'),
     '/',
     {},
-    {'Host': args.httpHostHeader}
+    {'Host': plugin.getArgValue('httpHostHeader')}
     )
 
 
@@ -323,7 +331,7 @@ httpResponse = httpConnection.getresponse()
 #   http://docs.python.org/library/httplib.html#httplib.HTTPResponse
 #   http://docs.python.org/library/httplib.html#httpresponse-objects
 
-#print httpResponse.read()
+print httpResponse.read()
 
 
 
