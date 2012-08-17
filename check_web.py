@@ -75,7 +75,6 @@ class nagiosPlugin(object):
 
 
     def showArgs(self):
-#        print self._argList
         truc = utility()
         length = truc.lengthOfLongestKey(self._argList)
         for key in self._argList:
@@ -231,36 +230,6 @@ plugin.readArgs()
 plugin.showArgs()
 
 
-
-"""
-# Declare/load/validate args
-myParser = argparse.ArgumentParser(description = 'Check a web page')
-
-# http://docs.python.org/library/argparse.html#the-add-argument-method
-myParser.add_argument('-u', '--url',         type = str, dest = 'url',           required = True,    help = 'URL of page to check with leading "http://"')
-myParser.add_argument('-p', '--httpPort', type = int, dest = 'httpPort', required = False,   help = 'HTTP port (optional. Defaults to 80)', default = 80)
-myParser.add_argument('-M', '--httpMethod',     type = str, dest = 'httpMethod',      required = False,   help = 'HTTP method (optional. Defaults to GET)', default = 'GET')
-myParser.add_argument('-m', '--matchString',    type = str, dest = 'matchString',   required = True,    help = 'String to search on page')
-myParser.add_argument('-w', '--warning',        type = int, dest = 'warning',       required = True,    help = 'warning threshold in ms')
-myParser.add_argument('-c', '--critical',       type = int, dest = 'critical',      required = True,    help = 'critical threshold in ms')
-myParser.add_argument('-H', '--httpHostHeader',     type = str, dest = 'httpHostHeader',    required = False,   help = 'HTTP host header (optional)')
-myParser.add_argument(      '--debug',  required = False, action = 'store_true')
-
-
-args    = myParser.parse_args()
-theArgs = {
-    'url'               : args.url,
-    'matchString'       : args.matchString,
-    'warning'           : args.warning,
-    'critical'          : args.critical,
-    'httpHostHeader'    : args.httpHostHeader,
-    'httpPort'          : args.httpPort,
-    'httpMethod'        : args.httpMethod,
-    'debug'             : args.debug
-    }
-"""
-
-
 print 'url = ' + plugin.getArgValue('url')
 
 
@@ -272,24 +241,6 @@ url = Url({
 
 #debug.die({'exitMessage': 'ARGL !'})
 
-"""
-
-debug.show(
-    'URL (full) = ' + url.getFullUrl() + "\n" \
-    'URL (query) = ' + url.getQueryUrl() + "\n" \
-    'HOSTNAME = ' + url.getHostName() + "\n" \
-    'HOST HEADER = ' + args.httpHostHeader + "\n" \
-    'HTTP PORT = ' + str(args.httpPort)
-    )
-
-
-length = lengthOfLongestKey(theArgs)
-for key in theArgs:
-    print str(key).rjust(length + 1) + ': ' + str(theArgs[key])
-
-
-#debug.die({'exitMessage': 'argl, je meurs, je meurs de facon... tragique!'})
-"""
 
 
 
@@ -307,7 +258,6 @@ for key in theArgs:
 #httpConnection = httplib.HTTPConnection('www.perdu.com', 80, timeout=10)
 httpConnection = httplib.HTTPConnection(
     url.getHostName(),
-    #    args.httpPort,
     plugin.getArgValue('httpPort'),
     timeout = 10
     )
@@ -317,7 +267,6 @@ httpConnection = httplib.HTTPConnection(
 # example : http://www.dev-explorer.com/articles/using-python-httplib
 #httpConnection.request('GET', '/', {}, {'Host': args.httpHostHeader})
 httpConnection.request(
-#    args.httpMethod,
 #    'POST',
     plugin.getArgValue('httpMethod'),
     '/',
