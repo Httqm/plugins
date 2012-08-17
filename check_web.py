@@ -9,24 +9,21 @@
 # NOTES :	1.
 #
 # COMMAND LINE :
-#	clear;./check_web.py --url="http://www.perdu.com" --httpHostHeader="www.perdu.com" --matchString="un mot" -w 2500 -c 4000 --debug
-#	clear;./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" --matchString="un mot" -w 2500 -c 4000 --debug
-#	clear;./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" --httpMethod=get --matchString="un mot" -w 2500 -c 4000 --debug
+#   clear;./check_web.py --url="http://www.perdu.com" --httpHostHeader="www.perdu.com" --matchString="un mot" -w 2500 -c 4000 --debug
+#   clear;./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" --matchString="un mot" -w 2500 -c 4000 --debug
+#   clear;./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" --httpMethod=get --matchString="un mot" -w 2500 -c 4000 --debug
 #
 # TODO :
 #		-
 ########################################## ##########################################################
 
-#import urllib                          # http://docs.python.org/library/httplib.htm
-import httplib
-# http://docs.python.org/library/urllib.html?highlight=urllib
-import argparse
+#import urllib  # http://docs.python.org/library/urllib.html?highlight=urllib
+import httplib  # http://docs.python.org/library/httplib.htm
 
 from modules import debug
 
 debug = debug.Debug()
 
-#debug.die({'exitMessage': 'argl, je meurs, je meurs de facon... tragique!'})
 ########################################## ##########################################################
 # CLASSES
 ########################################## ##########################################################
@@ -49,17 +46,6 @@ class nagiosPlugin(object):
 
 
     def addArg(self, argData):
-        """
-        'shortOption'   : 'u',
-        'longOption'    : 'url',
-        'type'          : str,
-        'required'      : True,
-        'help'          : 'URL of page to check with leading "http://"'
-
-
-        myParser.add_argument('-u', '--url',  type = str, dest = 'url',           required = True,    help = 'URL of page to check with leading "http://"')
-        """
-
         # http://docs.python.org/library/argparse.html#the-add-argument-method
         self._argParser.add_argument(
             '-'     + argData['shortOption'],
@@ -161,21 +147,6 @@ class utility(object):
 
 ########################################## ##########################################################
 # /CLASSES
-# FUNCTIONS
-########################################## ##########################################################
-"""
-def lengthOfLongestKey(aDict):
-    length = 0
-    for key in aDict:
-        keyLength   = len(str(key))
-        if keyLength > length:
-            length = keyLength
-    return length
-"""
-
-
-########################################## ##########################################################
-# /FUNCTIONS
 # CONFIG
 ########################################## ##########################################################
 
@@ -259,7 +230,7 @@ plugin.showArgs()
 
 debug.die({'exitMessage': 'argl, je meurs, je meurs de facon... tragique!'})
 
-
+"""
 # Declare/load/validate args
 myParser = argparse.ArgumentParser(description = 'Check a web page')
 
@@ -285,6 +256,7 @@ theArgs = {
     'httpMethod'        : args.httpMethod,
     'debug'             : args.debug
     }
+"""
 
 
 # TODO : refuse the URL arg if it doesn't start EXACTLY with "http://"
@@ -294,6 +266,7 @@ url = Url({
         })
 
 
+"""
 
 debug.show(
     'URL (full) = ' + url.getFullUrl() + "\n" \
@@ -310,6 +283,7 @@ for key in theArgs:
 
 
 #debug.die({'exitMessage': 'argl, je meurs, je meurs de facon... tragique!'})
+"""
 
 
 
