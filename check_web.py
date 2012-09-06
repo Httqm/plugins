@@ -39,6 +39,7 @@ class nagiosPlugin(object):
             2: 'CRITICAL',
             3: 'UNKNOWN'
             }
+#        self._debugIsEnabled = False
 
         import argparse
         self._argParser = argparse.ArgumentParser(description = 'Check a web page') # TODO : this is not GENERIC !
@@ -76,7 +77,14 @@ class nagiosPlugin(object):
         self._args = self._argParser.parse_args()
         for argName in self._argDict:
             self._argDict[argName]['value'] = getattr(self._args, argName)
+        self._detectDebugValue()
         self._validateArgs()
+
+
+    def _detectDebugValue(self):
+        if self._argDict['debug']['value']:
+            self._objDebug.enable(True)
+            self._objDebug.show('DEBUG IS ENABLED!')
 
 
     def _validateArgs(self):
@@ -105,9 +113,9 @@ class nagiosPlugin(object):
         print 'SHOWARGS'
         print length
         """
-        for key in self._argDict:
-            print str(key).rjust(length + 1) + ': ' + str(self._argDict[key]['value'])
-#            print 'RULE : ' + self._argDict[key]['rule']
+        for argName in self._argDict:
+            print str(argName).rjust(length + 1) + ': ' + str(self._argDict[argName]['value'])
+#            print 'RULE : ' + self._argDict[argName]['rule']
 
 
     def getArgValue(self, argName):
