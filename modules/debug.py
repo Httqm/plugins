@@ -9,18 +9,16 @@ class Debug(object):
     def die(self, params):
         """ Display an error message and leave the program. """
         print (params['exitMessage'])
-#        print (config.messageDie)
         self._mySys.exit(2)
 
 
     def show(self, message):
-#        if config.debug:
-            import inspect
-            print ("\n" \
-                + " ++=================== DEBUG =========================\n" \
-                + ' || FILE    : ' + str(inspect.stack()[1][1]) + "\n" \
-                + ' || LINE    : ' + str(inspect.stack()[1][2]) + "\n" \
-                + ' || CALLER  : ' + str(inspect.stack()[1][3]) + "\n" \
-                + ' || MESSAGE : ' + str(message) + "\n" \
-                + " ++================== /DEBUG =========================\n")
+        import inspect
+        print ("\n" \
+            + " ++=================== DEBUG =========================\n" \
+            + ' || FILE    : ' + str(inspect.stack()[1][1]) + "\n" \
+            + ' || LINE    : ' + str(inspect.stack()[1][2]) + "\n" \
+            + ' || CALLER  : ' + str(inspect.stack()[1][3]) + "\n" \
+            + ' || MESSAGE : ' + str(message) + "\n" \
+            + " ++================== /DEBUG =========================\n")
 

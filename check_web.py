@@ -22,7 +22,6 @@ import httplib  # http://docs.python.org/library/httplib.htm
 
 from modules import debug
 
-debug = debug.Debug()
 
 ########################################## ##########################################################
 # CLASSES
@@ -32,7 +31,8 @@ import re
 
 class nagiosPlugin(object):
 
-    def __init__(self):
+    def __init__(self, params):
+        self._objDebug  = params['objDebug']
         self._exitCodes = {
             0: 'OK',
             1: 'WARNING',
@@ -42,7 +42,6 @@ class nagiosPlugin(object):
 
         import argparse
         self._argParser = argparse.ArgumentParser(description = 'Check a web page') # TODO : this is not GENERIC !
-        self._argList   = []
         self._argDict   = {}
 
 
@@ -51,18 +50,17 @@ class nagiosPlugin(object):
         self._argParser.add_argument(
             '-'     + argData['shortOption'],
             '--'    + argData['longOption'],
-#            type        = argData['type'],
             type        = str,  # Even warn / crit can be strings when defining ranges : "50:100"
             dest        = argData['longOption'],
             required    = argData['required'],
             default     = argData['default'],
             help        = argData['help']
             )
-#        self._argList.append(argData['longOption'])
         self._argDict[argData['longOption']] = {
             'value' : 0,
             'rule'  : argData['rule']
             }
+
 
     def addArgDebug(self):
         self._argParser.add_argument(
@@ -71,7 +69,7 @@ class nagiosPlugin(object):
             action      = 'store_true',
             help        = 'Toggle debug messages'
             )
-        self._argList.append('debug')
+        self._argDict['debug'] = {}
 
 
     def readArgs(self):
@@ -82,19 +80,24 @@ class nagiosPlugin(object):
 
 
     def _validateArgs(self):
-        self._args = self._argParser.parse_args()
-#        print self._argDict
-        """
-        for argName in self._argList:
-            argValue = str(getattr(self._args, argName))
-#            argRule = self._argList.str(getattr(self._args, argName))
-            print str(argName) + ' ' + argValue
-        """
+        self._objDebug.show(self._argDict)
+        import re
+        for argName in self._argDict:
+            if argName == 'debug' or not len(self._argDict[argName]['rule']) : # The debug arg has a boolean value that doesn't fit the regexp search, and has no 'rule'. TODO : fix this if possible
+                continue
+            message = '(for "' + argName + '")' \
+                + ' RULE : "' + self._argDict[argName]['rule'] \
+                + '", VALUE : "' + str(self._argDict[argName]['value']) + '"'
+            if re.search('^' + self._argDict[argName]['rule'] + '$', str(self._argDict[argName]['value'])):
+                matchMessage = 'MATCHED :'
+            else:
+                matchMessage = 'NO MATCH :-('
+                self._objDebug.die({'exitMessage': 'Invalid value "' + str(self._argDict[argName]['value']) + '" for argument "' + argName + '".'})
+            self._objDebug.show(matchMessage + ' ' + message)
 
 
     def showArgs(self):
         util    = utility()
-#        length  = truc.lengthOfLongestKey(self._argList)
         length  = util.lengthOfLongestKey(self._argDict)
         """
         for key in self._argList:
@@ -184,83 +187,80 @@ class utility(object):
 # main()
 ########################################## ##########################################################
 
-plugin = check_web()
+objDebug = debug.Debug()
+
+plugin = check_web({
+    'objDebug': objDebug
+    })
 
 plugin.addArg({
-        'shortOption'   : 'u',
-        'longOption'    : 'url',
-#        'type'          : str,
-        'required'      : True,
-        'default'       : None,
-        'help'          : 'URL of page to check with leading "http://"',
-        'rule'          : '^http://.*$'
-        })
+    'shortOption'   : 'u',
+    'longOption'    : 'url',
+    'required'      : True,
+    'default'       : None,
+    'help'          : 'URL of page to check with leading "http://"',
+    'rule'          : 'http://.*'
+    })
 
 plugin.addArg({
-        'shortOption'   : 'p',
-        'longOption'    : 'httpPort',
-#        'type'          : str,
-        'required'      : False,
-        'default'       : 80,
-        'help'          : 'HTTP port (optional. Defaults to 80)',
-        'rule'          : ''
-        })
+    'shortOption'   : 'p',
+    'longOption'    : 'httpPort',
+    'required'      : False,
+    'default'       : 80,
+    'help'          : 'HTTP port (optional. Defaults to 80)',
+    'rule'          : '\d+'
+    })
 
 plugin.addArg({
-        'shortOption'   : 'M',
-        'longOption'    : 'httpMethod',
-#        'type'          : str,
-        'required'      : False,
-        'default'       : 'GET',
-        'help'          : 'HTTP method (optional. Defaults to GET)',
-        'rule'          : ''
-        })
+    'shortOption'   : 'M',
+    'longOption'    : 'httpMethod',
+    'required'      : False,
+    'default'       : 'GET',
+    'help'          : 'HTTP method (optional. Defaults to GET)',
+    'rule'          : '(GET|POST|HEAD)'
+    })
 
 plugin.addArg({
-        'shortOption'   : 'm',
-        'longOption'    : 'matchString',
-#        'type'          : str,
-        'required'      : True,
-        'default'       : None,
-        'help'          : 'String to search on page',
-        'rule'          : ''
-        })
+    'shortOption'   : 'm',
+    'longOption'    : 'matchString',
+    'required'      : True,
+    'default'       : None,
+    'help'          : 'String to search on page',
+    'rule'          : '[\w ]+'
+    })
 
 plugin.addArg({
-        'shortOption'   : 'w',
-        'longOption'    : 'warning',
-#        'type'          : int,
-        'required'      : True,
-        'default'       : None,
-        'help'          : 'warning threshold in ms',
-        'rule'          : ''
-        })
+    'shortOption'   : 'w',
+    'longOption'    : 'warning',
+    'required'      : True,
+    'default'       : None,
+    'help'          : 'warning threshold in ms',
+    'rule'          : '(\d+:?|:\d+|\d+:\d+)'
+    })
 
 plugin.addArg({
-        'shortOption'   : 'c',
-        'longOption'    : 'critical',
-#        'type'          : int,
-        'required'      : True,
-        'default'       : None,
-        'help'          : 'critical threshold in ms',
-        'rule'          : ''
-        })
+    'shortOption'   : 'c',
+    'longOption'    : 'critical',
+    'required'      : True,
+    'default'       : None,
+    'help'          : 'critical threshold in ms',
+    'rule'          : ''
+    })
 
 plugin.addArg({
-        'shortOption'   : 'H',
-        'longOption'    : 'httpHostHeader',
-#        'type'          : str,
-        'required'      : True,
-        'default'       : None,
-        'help'          : 'HTTP host header (optional)',
-        'rule'          : ''
-        })
-
+    'shortOption'   : 'H',
+    'longOption'    : 'httpHostHeader',
+    'required'      : True,
+    'default'       : None,
+    'help'          : 'HTTP host header (optional)',
+    'rule'          : ''
+    })
 
 plugin.addArgDebug()
 
 plugin.readArgs()
 plugin.showArgs()
+
 
 
 print 'url = ' + plugin.getArgValue('url')
@@ -269,10 +269,10 @@ print 'url = ' + plugin.getArgValue('url')
 # TODO : refuse the URL arg if it doesn't start EXACTLY with "http://"
 # TODO : no port number allowed in URL
 url = Url({
-        'full' : plugin.getArgValue('url')
-        })
+    'full' : plugin.getArgValue('url')
+    })
 
-debug.die({'exitMessage': 'ARGL !'})
+objDebug.die({'exitMessage': 'ARGL !'})
 
 
 
