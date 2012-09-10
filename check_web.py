@@ -98,7 +98,7 @@ myPlugin.declareArgument({
     'required'      : True,
     'default'       : None,
     'help'          : 'URL of page to check with leading "http://"',
-    'rule'          : 'http://.*'
+    'rule'          : 'http://[^:]*'
     })
 
 myPlugin.declareArgument({
