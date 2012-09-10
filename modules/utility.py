@@ -10,8 +10,7 @@
 #
 ########################################## ##########################################################
 
-class utility(object):
-
+class Utility(object):
 
     def lengthOfLongestKey(self, aDict):
         length = 0

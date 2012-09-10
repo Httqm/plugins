@@ -19,6 +19,7 @@
 
 #import urllib  # http://docs.python.org/library/urllib.html?highlight=urllib
 import httplib  # http://docs.python.org/library/httplib.htm
+import re
 
 from modules import debug
 from modules import nagiosPlugin
@@ -30,7 +31,6 @@ from modules import utility
 # CLASSES
 ########################################## ##########################################################
 
-import re
 
 class check_web(nagiosPlugin.NagiosPlugin):
 
@@ -84,15 +84,15 @@ class Url(object):
 ########################################## ##########################################################
 
 
-myUtility   = utility.utility()
-objDebug    = debug.Debug()
+myUtility   = utility.Utility()
+myDebug     = debug.Debug()
 
-plugin = check_web({
-    'objDebug'      : objDebug,
+myPlugin    = check_web({
+    'objDebug'      : myDebug,
     'objUtility'    : myUtility
     })
 
-plugin.addArg({
+myPlugin.declareArgument({
     'shortOption'   : 'u',
     'longOption'    : 'url',
     'required'      : True,
@@ -101,7 +101,7 @@ plugin.addArg({
     'rule'          : 'http://.*'
     })
 
-plugin.addArg({
+myPlugin.declareArgument({
     'shortOption'   : 'p',
     'longOption'    : 'httpPort',
     'required'      : False,
@@ -110,7 +110,7 @@ plugin.addArg({
     'rule'          : '\d+'
     })
 
-plugin.addArg({
+myPlugin.declareArgument({
     'shortOption'   : 'M',
     'longOption'    : 'httpMethod',
     'required'      : False,
@@ -119,7 +119,7 @@ plugin.addArg({
     'rule'          : '(GET|POST|HEAD)'
     })
 
-plugin.addArg({
+myPlugin.declareArgument({
     'shortOption'   : 'm',
     'longOption'    : 'matchString',
     'required'      : True,
@@ -128,7 +128,7 @@ plugin.addArg({
     'rule'          : '[\w ]+'
     })
 
-plugin.addArg({
+myPlugin.declareArgument({
     'shortOption'   : 'w',
     'longOption'    : 'warning',
     'required'      : True,
@@ -137,7 +137,7 @@ plugin.addArg({
     'rule'          : '(\d+:?|:\d+|\d+:\d+)'
     })
 
-plugin.addArg({
+myPlugin.declareArgument({
     'shortOption'   : 'c',
     'longOption'    : 'critical',
     'required'      : True,
@@ -146,7 +146,7 @@ plugin.addArg({
     'rule'          : ''
     })
 
-plugin.addArg({
+myPlugin.declareArgument({
     'shortOption'   : 'H',
     'longOption'    : 'httpHostHeader',
     'required'      : True,
@@ -155,28 +155,26 @@ plugin.addArg({
     'rule'          : ''
     })
 
-plugin.addArgDebug()
-
-plugin.readArgs()
-plugin.showArgs()
-
+myPlugin.declareArgumentDebug()
+myPlugin.readArgs()
+myPlugin.showArgs()
 
 
-print 'url = ' + plugin.getArgValue('url')
+
+print 'url = ' + myPlugin.getArgValue('url')
 
 
-# TODO : refuse the URL arg if it doesn't start EXACTLY with "http://"
 # TODO : no port number allowed in URL
 url = Url({
-    'full' : plugin.getArgValue('url')
+    'full' : myPlugin.getArgValue('url')
     })
 
-objDebug.die({'exitMessage': 'ARGL !'})
+myDebug.die({'exitMessage': 'ARGL !'})
 
 
 
 
-# enable plugin timeout + interrupt. If timeout, exit as nagios status code "unknown" + exit message
+# enable myPlugin timeout + interrupt. If timeout, exit as nagios status code "unknown" + exit message
 
 # init timer
 
@@ -190,7 +188,7 @@ objDebug.die({'exitMessage': 'ARGL !'})
 #httpConnection = httplib.HTTPConnection('www.perdu.com', 80, timeout=10)
 httpConnection = httplib.HTTPConnection(
     url.getHostName(),
-    plugin.getArgValue('httpPort'),
+    myPlugin.getArgValue('httpPort'),
     timeout = 10
     )
 #TODO : host must be HTTP (no httpS) and have no leading "http://"
@@ -200,10 +198,10 @@ httpConnection = httplib.HTTPConnection(
 #httpConnection.request('GET', '/', {}, {'Host': args.httpHostHeader})
 httpConnection.request(
 #    'POST',
-    plugin.getArgValue('httpMethod'),
+    myPlugin.getArgValue('httpMethod'),
     '/',
     {},
-    {'Host': plugin.getArgValue('httpHostHeader')}
+    {'Host': myPlugin.getArgValue('httpHostHeader')}
     )
 
 

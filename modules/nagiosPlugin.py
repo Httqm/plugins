@@ -25,12 +25,12 @@ class NagiosPlugin(object):
 #        self._debugIsEnabled = False
 
         import argparse
-        self._argParser = argparse.ArgumentParser(description = 'Check a web page') # TODO : this is not GENERIC !
+        self._argParser = argparse.ArgumentParser(description = 'Check a web page') # TODO : this is not GENERIC ! Fix it now !
         self._argDict   = {}
 
 
-    def addArg(self, argData):
-        # http://docs.python.org/library/argparse.html#the-add-argument-method
+    def declareArgument(self, argData):
+        """ See : http://docs.python.org/library/argparse.html#the-add-argument-method """
         self._argParser.add_argument(
             '-'     + argData['shortOption'],
             '--'    + argData['longOption'],
@@ -46,7 +46,7 @@ class NagiosPlugin(object):
             }
 
 
-    def addArgDebug(self):
+    def declareArgumentDebug(self):
         self._argParser.add_argument(
             '--debug',
             required    = False,
@@ -67,14 +67,14 @@ class NagiosPlugin(object):
     def _detectDebugValue(self):
         if self._argDict['debug']['value']:
             self._objDebug.enable(True)
-            self._objDebug.show('DEBUG IS ENABLED!')
+#            self._objDebug.show('DEBUG IS ENABLED!')
 
 
     def _validateArgs(self):
-        self._objDebug.show(self._argDict)
+#        self._objDebug.show(self._argDict)
         import re
         for argName in self._argDict:
-            if argName == 'debug' or not len(self._argDict[argName]['rule']) : # The debug arg has a boolean value that doesn't fit the regexp search, and has no 'rule'. TODO : fix this if possible
+            if argName == 'debug' or not len(self._argDict[argName]['rule']):
                 continue
             message = '(for "' + argName + '")' \
                 + ' RULE : "' + self._argDict[argName]['rule'] \
@@ -83,19 +83,14 @@ class NagiosPlugin(object):
                 matchMessage = 'MATCHED :'
             else:
                 matchMessage = 'NO MATCH :-('
-                self._objDebug.die({'exitMessage': 'Invalid value "' + str(self._argDict[argName]['value']) + '" for argument "' + argName + '".'})
-            self._objDebug.show(matchMessage + ' ' + message)
+                self._objDebug.die({'exitMessage': 'Invalid value "' + str(self._argDict[argName]['value']) \
+                    + '" for argument "' + argName + '".' \
+                    + ' The validation rule (RegExp) is :\n\n\t' + self._argDict[argName]['rule'] + '\n' })
+#            self._objDebug.show(matchMessage + ' ' + message)
 
 
     def showArgs(self):
-#        util    = utility()
         length  = self._objUtility.lengthOfLongestKey(self._argDict)
-        """
-        for key in self._argList:
-            print str(key).rjust(length + 1) + ': ' + str(getattr(self._args, key))
-        print 'SHOWARGS'
-        print length
-        """
         for argName in self._argDict:
             print str(argName).rjust(length + 1) + ': ' + str(self._argDict[argName]['value'])
 #            print 'RULE : ' + self._argDict[argName]['rule']
