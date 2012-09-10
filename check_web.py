@@ -23,8 +23,8 @@ import re
 
 from modules import debug
 from modules import nagiosPlugin
+from modules import url
 from modules import utility
-
 
 
 ########################################## ##########################################################
@@ -34,41 +34,47 @@ from modules import utility
 
 class check_web(nagiosPlugin.NagiosPlugin):
 
-    def getPage(self):
-        pass
+    def getPage(self, params):
+
+        self._objUrl = params['objUrl']
+        self._objDebug.show('URL = ' + self.getArgValue('url'))
+
+        self._connectToHttpServer()
+        self._sendHttpRequest()
+        self._getHttpResponse()
 
 
-class Url(object):
-
-    def __init__(self, params):
-        self._full = params['full']
-        self._clean()
-
-
-    def _clean(self):
-        # http://docs.python.org/library/stdtypes.html#str.rstrip
-        self._full = self._full.lstrip().rstrip()
-        print 'CLEAN URL : "' + self._full + '"'
+    def _connectToHttpServer(self):
+        # http://docs.python.org/library/httplib.html#httplib.HTTPConnection
+        self._httpConnection = httplib.HTTPConnection(
+            self._objUrl.getHostName(),
+            self.getArgValue('httpPort'),
+            timeout = 10
+            )
+        #TODO : host must be HTTP (no httpS) and have no leading "http://"
 
 
-    def getFullUrl(self):
-        return self._full
+    def _sendHttpRequest(self):
+        """
+        example : http://www.dev-explorer.com/articles/using-python-httplib
+        httpConnection.request('GET', '/', {}, {'Host': args.httpHostHeader})
+        """
+        self._httpConnection.request(
+            #    'POST',
+            self.getArgValue('httpMethod'),
+            '/', # TODO : the request
+            {},
+            {'Host': self.getArgValue('httpHostHeader')}
+            )
 
 
-    def getQueryUrl(self):
-        import string
-        tmp = string.replace(self._full, 'http://' + self.getHostName(), '')
-        return tmp if len(tmp) else '/'
+    def _getHttpResponse(self):
+        httpResponse = self._httpConnection.getresponse()
+        # returns an HTTPResponse object :
+        #   http://docs.python.org/library/httplib.html#httplib.HTTPResponse
+        #   http://docs.python.org/library/httplib.html#httpresponse-objects
 
-
-    def getHostName(self):
-        match = re.search('^http://([^:/]*)(:|/)?.*$', self._full)   # TODO : should start with 'http....', no leading space allowed
-        # http://docs.python.org/howto/regex#performing-matches
-        if match:
-            return match.group(1)
-        else:
-            return self._full
-
+        print httpResponse.read()
 
 
 
@@ -97,7 +103,7 @@ myPlugin.declareArgument({
     'longOption'    : 'url',
     'required'      : True,
     'default'       : None,
-    'help'          : 'URL of page to check with leading "http://"',
+    'help'          : 'URL of page to check ()with leading "http://"). To specify a port number, use the "httpPort" directive.',
     'rule'          : 'http://[^:]*'
     })
 
@@ -152,7 +158,7 @@ myPlugin.declareArgument({
     'required'      : True,
     'default'       : None,
     'help'          : 'HTTP host header (optional)',
-    'rule'          : ''
+    'rule'          : '[\w\.\-]*'
     })
 
 myPlugin.declareArgumentDebug()
@@ -160,18 +166,19 @@ myPlugin.readArgs()
 myPlugin.showArgs()
 
 
+#myDebug.show('url = ' + myPlugin.getArgValue('url'))
 
-print 'url = ' + myPlugin.getArgValue('url')
 
 
-# TODO : no port number allowed in URL
-url = Url({
-    'full' : myPlugin.getArgValue('url')
+myUrl       = url.Url({
+    'full'  : myPlugin.getArgValue('url')
     })
 
-myDebug.die({'exitMessage': 'ARGL !'})
+myPlugin.getPage({'objUrl' : myUrl})
 
 
+
+#myDebug.die({'exitMessage': 'ARGL !'})
 
 
 # enable myPlugin timeout + interrupt. If timeout, exit as nagios status code "unknown" + exit message
@@ -183,34 +190,6 @@ myDebug.die({'exitMessage': 'ARGL !'})
 
 
 
-# send http request (get, post, cookie, ...) with optionnal header(s)
-# http://docs.python.org/library/httplib.html#httplib.HTTPConnection
-#httpConnection = httplib.HTTPConnection('www.perdu.com', 80, timeout=10)
-httpConnection = httplib.HTTPConnection(
-    url.getHostName(),
-    myPlugin.getArgValue('httpPort'),
-    timeout = 10
-    )
-#TODO : host must be HTTP (no httpS) and have no leading "http://"
-
-
-# example : http://www.dev-explorer.com/articles/using-python-httplib
-#httpConnection.request('GET', '/', {}, {'Host': args.httpHostHeader})
-httpConnection.request(
-#    'POST',
-    myPlugin.getArgValue('httpMethod'),
-    '/',
-    {},
-    {'Host': myPlugin.getArgValue('httpHostHeader')}
-    )
-
-
-httpResponse = httpConnection.getresponse()
-# returns an HTTPResponse object :
-#   http://docs.python.org/library/httplib.html#httplib.HTTPResponse
-#   http://docs.python.org/library/httplib.html#httpresponse-objects
-
-print httpResponse.read()
 
 
 

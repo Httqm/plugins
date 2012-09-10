@@ -11,6 +11,10 @@
 ########################################## ##########################################################
 
 
+import argparse
+import re
+
+
 class NagiosPlugin(object):
 
     def __init__(self, params):
@@ -24,7 +28,7 @@ class NagiosPlugin(object):
             }
 #        self._debugIsEnabled = False
 
-        import argparse
+#        import argparse
         self._argParser = argparse.ArgumentParser(description = 'Check a web page') # TODO : this is not GENERIC ! Fix it now !
         self._argDict   = {}
 
@@ -72,7 +76,6 @@ class NagiosPlugin(object):
 
     def _validateArgs(self):
 #        self._objDebug.show(self._argDict)
-        import re
         for argName in self._argDict:
             if argName == 'debug' or not len(self._argDict[argName]['rule']):
                 continue
