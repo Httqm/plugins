@@ -31,17 +31,17 @@ from modules import utility
 # CLASSES
 ########################################## ##########################################################
 
-
 class check_web(nagiosPlugin.NagiosPlugin):
 
     def getPage(self, params):
 
         self._objUrl = params['objUrl']
-        self._objDebug.show('URL = ' + self.getArgValue('url'))
+#        self._objDebug.show('URL = ' + self.getArgValue('url'))
 
         self._connectToHttpServer()
         self._sendHttpRequest()
         self._getHttpResponse()
+        self._leaveIfNonOkHttpStatusCode()
 
 
     def _connectToHttpServer(self):
@@ -60,9 +60,8 @@ class check_web(nagiosPlugin.NagiosPlugin):
         httpConnection.request('GET', '/', {}, {'Host': args.httpHostHeader})
         """
         self._httpConnection.request(
-            #    'POST',
             self.getArgValue('httpMethod'),
-            '/', # TODO : the request
+            '/', # TODO : this is the HTTP request
             {},
             {'Host': self.getArgValue('httpHostHeader')}
             )
@@ -74,15 +73,23 @@ class check_web(nagiosPlugin.NagiosPlugin):
         #   http://docs.python.org/library/httplib.html#httplib.HTTPResponse
         #   http://docs.python.org/library/httplib.html#httpresponse-objects
 
-        print httpResponse.read()
+        self._objDebug.show(httpResponse.read())
+        self._httpStatusCode = httpResponse.status
+        self._objDebug.show(self._httpStatusCode)
 
+
+    def _leaveIfNonOkHttpStatusCode(self):
+        self._objDebug.show(HTTPOKSTATUSES)
+        if not self._httpStatusCode in HTTPOKSTATUSES:
+            self._objDebug.die({'exitMessage': 'HTTP failed !'})
+            # TODO : implement the "plugin exit", with nagios status code stuff
 
 
 ########################################## ##########################################################
 # /CLASSES
 # CONFIG
 ########################################## ##########################################################
-
+HTTPOKSTATUSES = [ 200, 301, 302 ]
 
 ########################################## ##########################################################
 # /CONFIG
