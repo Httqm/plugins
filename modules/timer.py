@@ -6,8 +6,8 @@ from datetime import datetime
 
 class Timer(object):
 
-    def __init__(self):
-        self.start()
+#    def __init__(self):
+#        self.start()
 
 
     def start(self):

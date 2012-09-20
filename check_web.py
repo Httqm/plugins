@@ -9,11 +9,7 @@
 # NOTES :	1.
 #
 # COMMAND LINE :
-#   clear;./check_web.py --url="http://www.perdu.com" --httpHostHeader="www.perdu.com" --matchString="un mot" -w 2500 -c 4000 --debug
-#   clear;./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" --matchString="un mot" -w 2500 -c 4000 --debug
-#   clear;./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" --httpMethod=get --matchString="un mot" -w 2500 -c 4000 --debug
-#
-# TODO :
+#   clear;./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" --httpMethod="GET" --matchString="un mot" -w 2500 -c 4000 --debug
 #		-
 ########################################## ##########################################################
 
@@ -24,7 +20,6 @@ import re
 from modules import debug
 from modules import nagiosPlugin
 from modules import url
-from modules import timer
 from modules import utility
 
 
@@ -36,13 +31,22 @@ class check_web(nagiosPlugin.NagiosPlugin):
 
     def getPage(self, params):
 
+        from modules import timer
+
         self._objUrl = params['objUrl']
 #        self._objDebug.show('URL = ' + self.getArgValue('url'))
 
+        myTimer = timer.Timer()
+        myTimer.start()
         self._connectToHttpServer()
         self._sendHttpRequest()
         self._getHttpResponse()
-        self._leaveIfNonOkHttpStatusCode()
+#        self._leaveIfNonOkHttpStatusCode()
+        return {
+            'httpStatusCode'        : self._httpStatusCode,
+            'pageContent'           : self._pageContent,
+            'durationMilliseconds'  : myTimer.stop() / 1000
+            }
 
 
     def _connectToHttpServer(self):
@@ -74,9 +78,10 @@ class check_web(nagiosPlugin.NagiosPlugin):
         #   http://docs.python.org/library/httplib.html#httplib.HTTPResponse
         #   http://docs.python.org/library/httplib.html#httpresponse-objects
 
-        self._objDebug.show(httpResponse.read())
-        self._httpStatusCode = httpResponse.status
-        self._objDebug.show(self._httpStatusCode)
+        self._pageContent       = httpResponse.read()
+        self._httpStatusCode    = httpResponse.status
+#        self._objDebug.show(httpResponse.read())
+#        self._objDebug.show(self._httpStatusCode)
 
 
     def _leaveIfNonOkHttpStatusCode(self):
@@ -97,19 +102,16 @@ HTTPOKSTATUSES = [ 200, 301, 302 ]
 # main()
 ########################################## ##########################################################
 
-myTimer     = timer.Timer()
-myTimer.start()
 
-import time
-time.sleep(1) # 1 second, but displayed time, in us is ~1000 WTF ? Should be ~1 000 000
-print myTimer.stop()
+#import time
+#time.sleep(1) # 1 second, but displayed time, in us is ~1000 WTF ? Should be ~1 000 000
 
 
 
 myUtility   = utility.Utility()
 myDebug     = debug.Debug()
 
-myDebug.die({'exitMessage':'argl2'})
+#myDebug.die({'exitMessage':'argl2'})
 
 myPlugin    = check_web({
     'objDebug'      : myDebug,
@@ -192,8 +194,15 @@ myUrl       = url.Url({
     'full'  : myPlugin.getArgValue('url')
     })
 
-myPlugin.getPage({'objUrl' : myUrl})
 
+#myTimer     = timer.Timer()
+#myTimer.start()
+
+result=myPlugin.getPage({'objUrl' : myUrl})
+
+myDebug.show('HTTP status code : ' + `result['httpStatusCode']`)
+myDebug.show('Duration : ' + `result['durationMilliseconds']` + 'ms')
+myDebug.show('Page : ' + result['pageContent'])
 
 
 #myDebug.die({'exitMessage': 'ARGL !'})
@@ -219,6 +228,7 @@ myPlugin.getPage({'objUrl' : myUrl})
 # get result + HTTP exit code
 
 # stop timer
+#print myTimer.stop()
 
 # if HTTP exit code is "success", search matchstring
 # otherwise, exit with error message + nagios status code
