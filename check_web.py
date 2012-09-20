@@ -24,6 +24,7 @@ import re
 from modules import debug
 from modules import nagiosPlugin
 from modules import url
+from modules import timer
 from modules import utility
 
 
@@ -96,9 +97,19 @@ HTTPOKSTATUSES = [ 200, 301, 302 ]
 # main()
 ########################################## ##########################################################
 
+myTimer     = timer.Timer()
+myTimer.start()
+
+import time
+time.sleep(1) # 1 second, but displayed time, in us is ~1000 WTF ? Should be ~1 000 000
+print myTimer.stop()
+
+
 
 myUtility   = utility.Utility()
 myDebug     = debug.Debug()
+
+myDebug.die({'exitMessage':'argl2'})
 
 myPlugin    = check_web({
     'objDebug'      : myDebug,
@@ -214,7 +225,6 @@ myPlugin.getPage({'objUrl' : myUrl})
 
 # if matchstring found, report success (nagios status code) + perfdata
 # otherwise, report failure + nagios status code + perfdata
-
 
 
 

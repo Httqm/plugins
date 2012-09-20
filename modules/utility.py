@@ -1,15 +1,5 @@
 #!/usr/bin/env python
 
-######################################### utility.py ################################################
-# FUNCTION :	
-#
-# AUTHOR :	Matthieu FOURNET (fournet.matthieu@gmail.com)
-# LICENSE :	GPL - http://www.fsf.org/licenses/gpl.txt
-#
-# NOTES :	1.
-#
-########################################## ##########################################################
-
 class Utility(object):
 
     def lengthOfLongestKey(self, aDict):
