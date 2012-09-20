@@ -29,9 +29,18 @@ from modules import utility
 
 class check_web(nagiosPlugin.NagiosPlugin):
 
+
     def getPage(self, params):
 
         from modules import timer
+
+
+        #http://stackoverflow.com/questions/265720/http-request-timeout
+        import socket
+        socket.setdefaulttimeout(TIMEOUTSECONDS)
+        # will raise a 'socket.timeout' exception upon timeout
+        # source : http://bytes.com/topic/python/answers/22953-how-catch-socket-timeout#post84566
+
 
         self._objUrl = params['objUrl']
 #        self._objDebug.show('URL = ' + self.getArgValue('url'))
@@ -52,46 +61,57 @@ class check_web(nagiosPlugin.NagiosPlugin):
 
     def _connectToHttpServer(self):
         # http://docs.python.org/library/httplib.html#httplib.HTTPConnection
-        self._httpConnection = httplib.HTTPConnection(
-            self._objUrl.getHostName(),
-            self.getArgValue('httpPort'),
-            timeout = 10 # TODO : unhardcode this !!!
-            )
-        #TODO : host must be HTTP (no httpS) and have no leading "http://"
+        import socket   # required to track the socket.timeout exception
+        try:
+            self._httpConnection = httplib.HTTPConnection(
+                self._objUrl.getHostName(),
+                self.getArgValue('httpPort'),
+#                timeout = TIMEOUTSECONDS   # this is managed globally
+                )
+            #TODO : host must be HTTP (no httpS) and have no leading "http://"
+        except socket.timeout, e:
+            self._objDebug.die({'exitMessage': "Error during connection: %s" % e}) # TODO : replace this by a 'Nagios exit', as critical
 
 
     def _sendHttpRequest(self):
         """
+        http://docs.python.org/library/httplib.html#httplib.HTTPConnection.request
         example : http://www.dev-explorer.com/articles/using-python-httplib
         httpConnection.request('GET', '/', {}, {'Host': args.httpHostHeader})
         """
-
+        import socket   # required to track the socket.timeout exception
         self._objDebug.show('URL query = ' + self._objUrl.getQuery())
-        self._httpConnection.request(
-            self.getArgValue('httpMethod'),
-#            '/', # TODO : this is the HTTP request
-            self._objUrl.getQuery(),
-            {},
-            {'Host': self.getArgValue('httpHostHeader')}
-            )
+        try:
+            self._httpConnection.request(
+                self.getArgValue('httpMethod'),                 # method
+                self._objUrl.getQuery(),                        # request
+                {},                                             # body. Used only for POST (?)
+                {'Host': self.getArgValue('httpHostHeader')}    # headers 
+                )
+        except socket.timeout, e:
+            self._objDebug.die({'exitMessage': "Error while sending request: %s" % e}) # TODO : replace this by a 'Nagios exit', as critical
 
 
     def _getHttpResponse(self):
-        httpResponse = self._httpConnection.getresponse()
-        # returns an HTTPResponse object :
-        #   http://docs.python.org/library/httplib.html#httplib.HTTPResponse
-        #   http://docs.python.org/library/httplib.html#httpresponse-objects
+        import socket   # required to track the socket.timeout exception
+        try:
+            httpResponse = self._httpConnection.getresponse()
+            # returns an HTTPResponse object :
+            #   http://docs.python.org/library/httplib.html#httplib.HTTPResponse
+            #   http://docs.python.org/library/httplib.html#httpresponse-objects
 
-        self._pageContent       = httpResponse.read()
-        self._httpStatusCode    = httpResponse.status
-        self._responseHeaders   = httpResponse.getheaders()
+            self._pageContent       = httpResponse.read()
+            self._httpStatusCode    = httpResponse.status
+            self._responseHeaders   = httpResponse.getheaders()
+        except socket.timeout, e:
+            self._objDebug.die({'exitMessage': "Error while getting response: %s" % e}) # TODO : replace this by a 'Nagios exit', as critical
 
 
-    def _leaveIfNonOkHttpStatusCode(self):
-        self._objDebug.show(HTTPOKSTATUSES)
-        if not self._httpStatusCode in HTTPOKSTATUSES:
-            self._objDebug.die({'exitMessage': 'HTTP failed !'})
-            # TODO : implement the "plugin exit", with nagios status code stuff
+#    def _leaveIfNonOkHttpStatusCode(self):
+#        self._objDebug.show(HTTPOKSTATUSES)
+#        if not self._httpStatusCode in HTTPOKSTATUSES:
+#            self._objDebug.die({'exitMessage': 'HTTP failed !'})
+#            # TODO : implement the "plugin exit", with nagios status code stuff
 
 
 ########################################## ##########################################################
@@ -99,7 +119,7 @@ class check_web(nagiosPlugin.NagiosPlugin):
 # CONFIG
 ########################################## ##########################################################
 HTTPOKSTATUSES = [ 200, 301, 302 ]
-
+TIMEOUTSECONDS = 0.5
 ########################################## ##########################################################
 # /CONFIG
 # main()
