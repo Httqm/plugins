@@ -33,7 +33,7 @@ class Url(object):
         return self._full
 
 
-    def getQueryUrl(self):
+    def getQuery(self):
         import string
         tmp = string.replace(self._full, 'http://' + self.getHostName(), '')
         return tmp if len(tmp) else '/'

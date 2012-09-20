@@ -44,6 +44,7 @@ class check_web(nagiosPlugin.NagiosPlugin):
 #        self._leaveIfNonOkHttpStatusCode()
         return {
             'httpStatusCode'        : self._httpStatusCode,
+            'responseHeaders'       : self._responseHeaders,
             'pageContent'           : self._pageContent,
             'durationMilliseconds'  : myTimer.stop() / 1000
             }
@@ -54,7 +55,7 @@ class check_web(nagiosPlugin.NagiosPlugin):
         self._httpConnection = httplib.HTTPConnection(
             self._objUrl.getHostName(),
             self.getArgValue('httpPort'),
-            timeout = 10
+            timeout = 10 # TODO : unhardcode this !!!
             )
         #TODO : host must be HTTP (no httpS) and have no leading "http://"
 
@@ -64,9 +65,12 @@ class check_web(nagiosPlugin.NagiosPlugin):
         example : http://www.dev-explorer.com/articles/using-python-httplib
         httpConnection.request('GET', '/', {}, {'Host': args.httpHostHeader})
         """
+
+        self._objDebug.show('URL query = ' + self._objUrl.getQuery())
         self._httpConnection.request(
             self.getArgValue('httpMethod'),
-            '/', # TODO : this is the HTTP request
+#            '/', # TODO : this is the HTTP request
+            self._objUrl.getQuery(),
             {},
             {'Host': self.getArgValue('httpHostHeader')}
             )
@@ -80,8 +84,7 @@ class check_web(nagiosPlugin.NagiosPlugin):
 
         self._pageContent       = httpResponse.read()
         self._httpStatusCode    = httpResponse.status
-#        self._objDebug.show(httpResponse.read())
-#        self._objDebug.show(self._httpStatusCode)
+        self._responseHeaders   = httpResponse.getheaders()
 
 
     def _leaveIfNonOkHttpStatusCode(self):
@@ -103,15 +106,9 @@ HTTPOKSTATUSES = [ 200, 301, 302 ]
 ########################################## ##########################################################
 
 
-#import time
-#time.sleep(1) # 1 second, but displayed time, in us is ~1000 WTF ? Should be ~1 000 000
-
-
-
 myUtility   = utility.Utility()
 myDebug     = debug.Debug()
 
-#myDebug.die({'exitMessage':'argl2'})
 
 myPlugin    = check_web({
     'objDebug'      : myDebug,
@@ -185,24 +182,19 @@ myPlugin.declareArgumentDebug()
 myPlugin.readArgs()
 myPlugin.showArgs()
 
-
 #myDebug.show('url = ' + myPlugin.getArgValue('url'))
-
-
 
 myUrl       = url.Url({
     'full'  : myPlugin.getArgValue('url')
     })
 
 
-#myTimer     = timer.Timer()
-#myTimer.start()
+result = myPlugin.getPage({'objUrl' : myUrl})
 
-result=myPlugin.getPage({'objUrl' : myUrl})
-
-myDebug.show('HTTP status code : ' + `result['httpStatusCode']`)
-myDebug.show('Duration : ' + `result['durationMilliseconds']` + 'ms')
-myDebug.show('Page : ' + result['pageContent'])
+myDebug.show('HTTP status code : '  + `result['httpStatusCode']`)
+myDebug.show('Duration : '          + `result['durationMilliseconds']` + 'ms')
+myDebug.show('Page length : '       + `len(result['pageContent'])`)
+myDebug.show('Response headers : '  + `result['responseHeaders']`)
 
 
 #myDebug.die({'exitMessage': 'ARGL !'})
