@@ -69,7 +69,13 @@ class check_web(nagiosPlugin.NagiosPlugin):
                 )
             #TODO : host must be HTTP (no httpS) and have no leading "http://"
         except socket.timeout, e:
-            self._objDebug.die({'exitMessage': "Error during connection: %s" % e}) # TODO : replace this by a 'Nagios exit', as critical
+#            self._objDebug.die({'exitMessage': "Error during connection: %s" % e}) # TODO : replace this by a 'Nagios exit', as critical
+#            self._exitOnTimeout()
+            self.exit({
+                'status'    : 'CRITICAL',
+                'message'   : 'Plugin timed out while opening connection.',
+                'perfdata'  : ''
+                })
 
 
     def _sendHttpRequest(self):
@@ -88,7 +94,13 @@ class check_web(nagiosPlugin.NagiosPlugin):
                 {'Host': self.getArgValue('httpHostHeader')}    # headers
                 )
         except socket.timeout, e:
-            self._objDebug.die({'exitMessage': "Error while sending request: %s" % e}) # TODO : replace this by a 'Nagios exit', as critical
+#            self._objDebug.die({'exitMessage': "Error while sending request: %s" % e}) # TODO : replace this by a 'Nagios exit', as critical
+#            self._exitOnTimeout()
+            self.exit({
+                'status'    : 'CRITICAL',
+                'message'   : 'Plugin timed out while sending request.',
+                'perfdata'  : ''
+                })
 
 
     def _getHttpResponse(self):
@@ -103,7 +115,13 @@ class check_web(nagiosPlugin.NagiosPlugin):
             self._httpStatusCode    = httpResponse.status
             self._responseHeaders   = httpResponse.getheaders()
         except socket.timeout, e:
-            self._objDebug.die({'exitMessage': "Error while getting response: %s" % e}) # TODO : replace this by a 'Nagios exit', as critical
+#            self._objDebug.die({'exitMessage': "Error while getting response: %s" % e}) # TODO : replace this by a 'Nagios exit', as critical
+#            self._exitOnTimeout()
+            self.exit({
+                'status'    : 'CRITICAL',
+                'message'   : 'Plugin timed out while waiting for response.',
+                'perfdata'  : ''
+                })
 
 
     def _receivedTheExpectedHttpStatusCode(self):
@@ -115,26 +133,39 @@ class check_web(nagiosPlugin.NagiosPlugin):
 
 
     def _matchStringWasFound(self):
-        self._objDebug.show('MatchString : ' + `self.getArgValue('matchString')`)
-        self._objDebug.show('Received Content : ' + `self._pageContent`)
+        self._objDebug.show('MatchString : ' + self.getArgValue('matchString'))
+        self._objDebug.show('Received Content : ' + self._pageContent)
         return True if re.search(self.getArgValue('matchString'), self._pageContent) else False
 
 
     def checkResult(self):
+        """
+        We're happy if :
+         - the HTTP status code we received is the expected one
+         - AND the match string is found in the returned content
+         - AND all of this happens BEFORE the timeout
+        """
         if not self._receivedTheExpectedHttpStatusCode():
-#            self._objDebug.die({'exitMessage': "Did not receive the expected HTTP status code"}) # TODO with a 'Nagios exit', as critical
             self.exit({
                 'status'    : 'CRITICAL',
                 'message'   : 'Expected HTTP status code : ' + self.getArgValue('httpStatusCode') +', received : ' + `self._httpStatusCode`,
                 'perfdata'  : '1234'
                 })
 
+        if not self._matchStringWasFound():
+            self.exit({
+                'status'    : 'CRITICAL',
+                'message'   : 'Expected matchstring "' + self.getArgValue('matchString') + '" not found',
+                'perfdata'  : '1234'
+                })
+
+
 
 ########################################## ##########################################################
 # /CLASSES
 # CONFIG
 ########################################## ##########################################################
-TIMEOUTSECONDS = 5
+TIMEOUTSECONDS = 0.1
 ########################################## ##########################################################
 # /CONFIG
 # main()
@@ -193,7 +224,7 @@ myPlugin.declareArgument({
     'required'      : True,
     'default'       : None,
     'help'          : 'String to search on page',
-    'rule'          : '[\w ]+'
+    'rule'          : '[\w \.-]+'
     })
 
 myPlugin.declareArgument({
@@ -243,10 +274,6 @@ myDebug.show('Response headers : '  + `result['responseHeaders']`)
 
 myPlugin.checkResult()
 
-# We're happy if :
-# - the HTTP status code we received is the expected one
-# - AND the match string is found in the returned content
-# - AND all of this happens BEFORE the timeout
 
 
 
