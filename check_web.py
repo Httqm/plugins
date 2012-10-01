@@ -9,8 +9,8 @@
 # NOTES :	1.
 #
 # COMMAND LINE :
-#   clear;./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" --httpMethod="GET" --matchString="un mot" -w 2500 -c 4000 --debug
-#		-
+#   clear;./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" --httpMethod="GET" --httpStatusCode 301 --matchString="un mot" -w 2500 -c 4000 --debug
+#
 ########################################## ##########################################################
 
 #import urllib  # http://docs.python.org/library/urllib.html?highlight=urllib
@@ -119,7 +119,7 @@ class check_web(nagiosPlugin.NagiosPlugin):
 # CONFIG
 ########################################## ##########################################################
 HTTPOKSTATUSES = [ 200, 301, 302 ]
-TIMEOUTSECONDS = 0.5
+TIMEOUTSECONDS = 5
 ########################################## ##########################################################
 # /CONFIG
 # main()
@@ -160,6 +160,15 @@ myPlugin.declareArgument({
     'default'       : 'GET',
     'help'          : 'HTTP method (optional. Defaults to GET)',
     'rule'          : '(GET|POST|HEAD)'
+    })
+
+myPlugin.declareArgument({
+    'shortOption'   : 's',
+    'longOption'    : 'httpStatusCode',
+    'required'      : False,
+    'default'       : '200',
+    'help'          : 'The expected HTTP status code (optional. Defaults to 200)',
+    'rule'          : '\d{3}'
     })
 
 myPlugin.declareArgument({
