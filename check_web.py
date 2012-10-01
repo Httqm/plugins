@@ -9,9 +9,24 @@
 # NOTES :	1.
 #
 # COMMAND LINE :
-#   clear;./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" --httpMethod="GET" --httpStatusCode 301 --matchString="un mot" -w 2500 -c 4000 --debug
+#   SEARCHING MATCHSTRING ON WEB PAGE :
+#   ./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" --httpMethod="GET" --httpStatusCode 200 --matchString="l.amour.est.dans.le.pre" -w 2500 -c 4000 --debug
+
+#   PLAYING WITH EXPECTED HTTP STATUS CODES :
+#   ./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="origin-www.voici.fr" --httpMethod="GET" --httpStatusCode 301 --matchString="bla" -w 2500 -c 4000 --debug
+
 #
 ########################################## ##########################################################
+
+
+
+# TODO :
+# - handle case when no matchstring is provided :
+#       1. no error when re.searching as it's empty
+#       2. if no string is provided, it means we don't care about strings matching, just HTTP codes (?)
+# /TODO
+
+
 
 #import urllib  # http://docs.python.org/library/urllib.html?highlight=urllib
 import httplib  # http://docs.python.org/library/httplib.htm
@@ -41,9 +56,10 @@ class check_web(nagiosPlugin.NagiosPlugin):
         # will raise a 'socket.timeout' exception upon timeout
         # source : http://bytes.com/topic/python/answers/22953-how-catch-socket-timeout#post84566
 
-
         self._objUrl = params['objUrl']
 #        self._objDebug.show('URL = ' + self.getArgValue('url'))
+
+        self._getHttpHostHeader()
 
         myTimer = timer.Timer()
         myTimer.start()
@@ -58,6 +74,15 @@ class check_web(nagiosPlugin.NagiosPlugin):
             }
 
 
+    def _getHttpHostHeader(self):
+        if self.getArgValue('httpHostHeader'):
+            self._httpHostHeader = self.getArgValue('httpHostHeader')
+        else:
+            self._httpHostHeader = self._objUrl.getHostName()
+#            self._objDebug.die({'exitMessage': 'no http host header provided :-('})
+        self._objDebug.show('HTTP host header : ' + self._httpHostHeader)
+
+
     def _connectToHttpServer(self):
         # http://docs.python.org/library/httplib.html#httplib.HTTPConnection
         import socket   # required to track the socket.timeout exception
@@ -69,8 +94,6 @@ class check_web(nagiosPlugin.NagiosPlugin):
                 )
             #TODO : host must be HTTP (no httpS) and have no leading "http://"
         except socket.timeout, e:
-#            self._objDebug.die({'exitMessage': "Error during connection: %s" % e}) # TODO : replace this by a 'Nagios exit', as critical
-#            self._exitOnTimeout()
             self.exit({
                 'status'    : 'CRITICAL',
                 'message'   : 'Plugin timed out while opening connection.',
@@ -91,11 +114,10 @@ class check_web(nagiosPlugin.NagiosPlugin):
                 self.getArgValue('httpMethod'),                 # method
                 self._objUrl.getQuery(),                        # request
                 {},                                             # body. Used only for POST (?)
-                {'Host': self.getArgValue('httpHostHeader')}    # headers
+#                {'Host': self.getArgValue('httpHostHeader')}    # headers
+                {'Host': self._httpHostHeader}                  # headers
                 )
         except socket.timeout, e:
-#            self._objDebug.die({'exitMessage': "Error while sending request: %s" % e}) # TODO : replace this by a 'Nagios exit', as critical
-#            self._exitOnTimeout()
             self.exit({
                 'status'    : 'CRITICAL',
                 'message'   : 'Plugin timed out while sending request.',
@@ -115,8 +137,6 @@ class check_web(nagiosPlugin.NagiosPlugin):
             self._httpStatusCode    = httpResponse.status
             self._responseHeaders   = httpResponse.getheaders()
         except socket.timeout, e:
-#            self._objDebug.die({'exitMessage': "Error while getting response: %s" % e}) # TODO : replace this by a 'Nagios exit', as critical
-#            self._exitOnTimeout()
             self.exit({
                 'status'    : 'CRITICAL',
                 'message'   : 'Plugin timed out while waiting for response.',
@@ -133,8 +153,8 @@ class check_web(nagiosPlugin.NagiosPlugin):
 
 
     def _matchStringWasFound(self):
-        self._objDebug.show('MatchString : ' + self.getArgValue('matchString'))
-        self._objDebug.show('Received Content : ' + self._pageContent)
+#        self._objDebug.show('MatchString : ' + self.getArgValue('matchString'))
+#        self._objDebug.show('Received Content : ' + self._pageContent) # <== worth displaying ? this is the full page :-/
         return True if re.search(self.getArgValue('matchString'), self._pageContent) else False
 
 
@@ -165,7 +185,7 @@ class check_web(nagiosPlugin.NagiosPlugin):
 # /CLASSES
 # CONFIG
 ########################################## ##########################################################
-TIMEOUTSECONDS = 0.1
+TIMEOUTSECONDS = 2
 ########################################## ##########################################################
 # /CONFIG
 # main()
@@ -221,7 +241,8 @@ myPlugin.declareArgument({
 myPlugin.declareArgument({
     'shortOption'   : 'm',
     'longOption'    : 'matchString',
-    'required'      : True,
+#    'required'      : True,
+    'required'      : False,
     'default'       : None,
     'help'          : 'String to search on page',
     'rule'          : '[\w \.-]+'
@@ -248,7 +269,7 @@ myPlugin.declareArgument({
 myPlugin.declareArgument({
     'shortOption'   : 'H',
     'longOption'    : 'httpHostHeader',
-    'required'      : True,
+    'required'      : False,
     'default'       : None,
     'help'          : 'HTTP host header (optional)',
     'rule'          : '[\w\.\-]*'
