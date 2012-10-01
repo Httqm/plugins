@@ -18,13 +18,14 @@ import re
 class NagiosPlugin(object):
 
     def __init__(self, params):
+        self._name          = params['name']
         self._objDebug      = params['objDebug']
         self._objUtility    = params['objUtility']
         self._exitCodes     = {
-            0: 'OK',
-            1: 'WARNING',
-            2: 'CRITICAL',
-            3: 'UNKNOWN'
+            'OK'        : 0,
+            'WARNING'   : 1,
+            'CRITICAL'  : 2,
+            'UNKNOWN'   : 3
             }
 #        self._debugIsEnabled = False
 
@@ -111,6 +112,11 @@ class NagiosPlugin(object):
         pass
 
 
-    def exit(self):
-        pass
+    def exit(self, params):
+        self._mySys = __import__('sys')
+
+        output = self._name + ' : ' + params['status'] + '. ' + params['message'] + '|' + params['perfdata']
+        print output
+        self._mySys.exit(self._exitCodes[params['status']])
+
 
