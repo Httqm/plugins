@@ -50,7 +50,6 @@ class check_web(nagiosPlugin.NagiosPlugin):
         self._connectToHttpServer()
         self._sendHttpRequest()
         self._getHttpResponse()
-#        self._leaveIfNonOkHttpStatusCode()
         return {
             'httpStatusCode'        : self._httpStatusCode,
             'responseHeaders'       : self._responseHeaders,
@@ -107,18 +106,30 @@ class check_web(nagiosPlugin.NagiosPlugin):
             self._objDebug.die({'exitMessage': "Error while getting response: %s" % e}) # TODO : replace this by a 'Nagios exit', as critical
 
 
-#    def _leaveIfNonOkHttpStatusCode(self):
-#        self._objDebug.show(HTTPOKSTATUSES)
-#        if not self._httpStatusCode in HTTPOKSTATUSES:
-#            self._objDebug.die({'exitMessage': 'HTTP failed !'})
-#            # TODO : implement the "plugin exit", with nagios status code stuff
+    def _receivedTheExpectedHttpStatusCode(self):
+        receivedHttpStatusCode = self._httpStatusCode                       # this is an integer
+        expectedHttpStatusCode = int(self.getArgValue('httpStatusCode'))    # this is passed as a string to the plugin from the command line
+        self._objDebug.show('Expected HTTP status code : ' + `expectedHttpStatusCode`)
+        self._objDebug.show('Received HTTP status code : ' + `receivedHttpStatusCode`)
+        return True if receivedHttpStatusCode == expectedHttpStatusCode else False
+
+
+    def _matchStringWasFound(self):
+        self._objDebug.show('MatchString : ' + `self.getArgValue('matchString')`)
+        self._objDebug.show('Received Content : ' + `self._pageContent`)
+        return True if re.search(self.getArgValue('matchString'), self._pageContent) else False
+
+
+    def checkResult(self):
+        if not self._receivedTheExpectedHttpStatusCode():
+            self._objDebug.die({'exitMessage': "Did not receive the expected HTTP status code"}) # TODO with a 'Nagios exit', as critical
+
 
 
 ########################################## ##########################################################
 # /CLASSES
 # CONFIG
 ########################################## ##########################################################
-HTTPOKSTATUSES = [ 200, 301, 302 ]
 TIMEOUTSECONDS = 5
 ########################################## ##########################################################
 # /CONFIG
@@ -224,6 +235,14 @@ myDebug.show('HTTP status code : '  + `result['httpStatusCode']`)
 myDebug.show('Duration : '          + `result['durationMilliseconds']` + 'ms')
 myDebug.show('Page length : '       + `len(result['pageContent'])`)
 myDebug.show('Response headers : '  + `result['responseHeaders']`)
+
+myPlugin.checkResult()
+
+# We're happy if :
+# - the HTTP status code we received is the expected one
+# - AND the match string is found in the returned content
+# - AND all of this happens BEFORE the timeout
+
 
 
 #myDebug.die({'exitMessage': 'ARGL !'})
