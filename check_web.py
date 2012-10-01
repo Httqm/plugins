@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ######################################### check_web.py ##############################################
-# FUNCTION :	
+# FUNCTION :
 #
 # AUTHOR :	Matthieu FOURNET (fournet.matthieu@gmail.com)
 # LICENSE :	GPL - http://www.fsf.org/licenses/gpl.txt
@@ -85,7 +85,7 @@ class check_web(nagiosPlugin.NagiosPlugin):
                 self.getArgValue('httpMethod'),                 # method
                 self._objUrl.getQuery(),                        # request
                 {},                                             # body. Used only for POST (?)
-                {'Host': self.getArgValue('httpHostHeader')}    # headers 
+                {'Host': self.getArgValue('httpHostHeader')}    # headers
                 )
         except socket.timeout, e:
             self._objDebug.die({'exitMessage': "Error while sending request: %s" % e}) # TODO : replace this by a 'Nagios exit', as critical
@@ -122,8 +122,12 @@ class check_web(nagiosPlugin.NagiosPlugin):
 
     def checkResult(self):
         if not self._receivedTheExpectedHttpStatusCode():
-            self._objDebug.die({'exitMessage': "Did not receive the expected HTTP status code"}) # TODO with a 'Nagios exit', as critical
-
+#            self._objDebug.die({'exitMessage': "Did not receive the expected HTTP status code"}) # TODO with a 'Nagios exit', as critical
+            self.exit({
+                'status'    : 'CRITICAL',
+                'message'   : 'Expected HTTP status code : ' + self.getArgValue('httpStatusCode') +', received : ' + `self._httpStatusCode`,
+                'perfdata'  : '1234'
+                })
 
 
 ########################################## ##########################################################
@@ -142,6 +146,7 @@ myDebug     = debug.Debug()
 
 
 myPlugin    = check_web({
+    'name'          : 'CHECK WEB',
     'objDebug'      : myDebug,
     'objUtility'    : myUtility
     })

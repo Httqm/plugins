@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ######################################### url.py ####################################################
-# FUNCTION :	
+# FUNCTION :
 #
 # AUTHOR :	Matthieu FOURNET (fournet.matthieu@gmail.com)
 # LICENSE :	GPL - http://www.fsf.org/licenses/gpl.txt
@@ -18,15 +18,6 @@ class Url(object):
 
     def __init__(self, params):
         self._full = params['full']
-#        self._clean()
-
-
-    """
-    def _clean(self):
-        # http://docs.python.org/library/stdtypes.html#str.rstrip
-        self._full = self._full.lstrip().rstrip()
-        print 'CLEAN URL : "' + self._full + '"'
-    """
 
 
     def getFullUrl(self):
