@@ -75,14 +75,21 @@ class NagiosPlugin(object):
 #            self._objDebug.show('DEBUG IS ENABLED!')
 
 
+    def _isUselessCheckingArgument(self, argName):
+        if argName == 'debug' \
+            or len(self._argDict[argName]['rule']) == 0 \
+            or self._argDict[argName]['value'] == None:
+            return True
+        else:
+            return False
+
+
     def _validateArgs(self):
 #        self._objDebug.show(self._argDict)
         for argName in self._argDict:
-            if argName == 'debug' or not len(self._argDict[argName]['rule']):
+#            if argName == 'debug' or not len(self._argDict[argName]['rule']):
+            if self._isUselessCheckingArgument(argName):
                 continue
-            message = '(for "' + argName + '")' \
-                + ' RULE : "' + self._argDict[argName]['rule'] \
-                + '", VALUE : "' + str(self._argDict[argName]['value']) + '"'
             if re.search('^' + self._argDict[argName]['rule'] + '$', str(self._argDict[argName]['value'])):
                 matchMessage = 'MATCHED :'
             else:
@@ -90,6 +97,9 @@ class NagiosPlugin(object):
                 self._objDebug.die({'exitMessage': 'Invalid value "' + str(self._argDict[argName]['value']) \
                     + '" for argument "' + argName + '".' \
                     + ' The validation rule (RegExp) is :\n\n\t' + self._argDict[argName]['rule'] + '\n' })
+#            message = '(for "' + argName + '")' \
+#                + ' RULE : "' + self._argDict[argName]['rule'] \
+#                + '", VALUE : "' + str(self._argDict[argName]['value']) + '"'
 #            self._objDebug.show(matchMessage + ' ' + message)
 
 
