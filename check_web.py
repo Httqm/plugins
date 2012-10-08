@@ -82,8 +82,7 @@ class check_web(nagiosPlugin.NagiosPlugin):
             self._httpHostHeader = self.getArgValue('httpHostHeader')
         else:
             self._httpHostHeader = self._objUrl.getHostName()
-#            self._objDebug.die({'exitMessage': 'no http host header provided :-('})
-        self._objDebug.show('HTTP host header : ' + self._httpHostHeader)
+#        self._objDebug.show('HTTP host header : ' + self._httpHostHeader)
 
 
     def _connectToHttpServer(self):
@@ -110,7 +109,7 @@ class check_web(nagiosPlugin.NagiosPlugin):
         httpConnection.request('GET', '/', {}, {'Host': args.httpHostHeader})
         """
         import socket   # required to track the socket.timeout exception
-        self._objDebug.show('URL query = ' + self._objUrl.getQuery())
+#        self._objDebug.show('URL query = ' + self._objUrl.getQuery())
         try:
             self._httpConnection.request(
                 self.getArgValue('httpMethod'),                 # method
@@ -226,7 +225,8 @@ myPlugin.declareArgument({
     'required'      : False,
     'default'       : 80,
     'help'          : 'HTTP port (optional. Defaults to 80)',
-    'rule'          : '\d+'
+    'rule'          : '\d+',
+    'orArgGroup'    : 'httpMethod_OR_httpPort' # TODO : remove this after testing
     })
 
 myPlugin.declareArgument({
@@ -235,7 +235,8 @@ myPlugin.declareArgument({
     'required'      : False,
     'default'       : 'GET',
     'help'          : 'HTTP method (optional. Defaults to GET)',
-    'rule'          : '(GET|POST|HEAD)'
+    'rule'          : '(GET|POST|HEAD)',
+    'orArgGroup'    : 'httpMethod_OR_httpPort' # TODO : remove this after testing
     })
 
 myPlugin.declareArgument({
@@ -245,8 +246,8 @@ myPlugin.declareArgument({
 #    'default'       : '200',
     'default'       : None,
     'help'          : 'The expected HTTP status code (optional. Defaults to 200)',
-    'rule'          : '\d{3}'
-,'orArgGroup':'httpStatusCode_OR_matchString'
+    'rule'          : '\d{3}',
+    'orArgGroup'    : 'httpStatusCode_OR_matchString'
     })
 
 myPlugin.declareArgument({
@@ -255,8 +256,8 @@ myPlugin.declareArgument({
     'required'      : False,
     'default'       : None,
     'help'          : 'String to search on page',
-    'rule'          : '[\w \.-]+'
-,'orArgGroup':'httpStatusCode_OR_matchString'
+    'rule'          : '[\w \.-]+',
+    'orArgGroup'    : 'httpStatusCode_OR_matchString'
     })
 
 myPlugin.declareArgument({
@@ -286,6 +287,40 @@ myPlugin.declareArgument({
     'rule'          : '[\w\.\-]+'
     })
 
+#"""
+#TESTING
+myPlugin.declareArgument({
+    'shortOption'   : 'i',
+    'longOption'    : 'iii',
+    'required'      : False,
+    'default'       : None,
+    'help'          : '',
+    'rule'          : ''
+,'orArgGroup':'testing'
+    })
+
+myPlugin.declareArgument({
+    'shortOption'   : 'j',
+    'longOption'    : 'jjj',
+    'required'      : False,
+    'default'       : None,
+    'help'          : '',
+    'rule'          : ''
+,'orArgGroup':'testing'
+    })
+
+myPlugin.declareArgument({
+    'shortOption'   : 'k',
+    'longOption'    : 'kkk',
+    'required'      : False,
+    'default'       : None,
+    'help'          : '',
+    'rule'          : ''
+,'orArgGroup':'testing'
+    })
+#/TESTING
+#"""
+
 myPlugin.declareArgumentDebug()
 myPlugin.readArgs()
 myPlugin.showArgs()
@@ -298,10 +333,10 @@ myUrl       = url.Url({
 
 result = myPlugin.getPage({'objUrl' : myUrl})
 
-myDebug.show('HTTP status code : '  + `result['httpStatusCode']`)
-myDebug.show('Duration : '          + `result['durationMilliseconds']` + 'ms')
-myDebug.show('Page length : '       + `len(result['pageContent'])`)
-myDebug.show('Response headers : '  + `result['responseHeaders']`)
+#myDebug.show('HTTP status code : '  + `result['httpStatusCode']`)
+#myDebug.show('Duration : '          + `result['durationMilliseconds']` + 'ms')
+#myDebug.show('Page length : '       + `len(result['pageContent'])`)
+#myDebug.show('Response headers : '  + `result['responseHeaders']`)
 
 myPlugin.checkResult()
 
