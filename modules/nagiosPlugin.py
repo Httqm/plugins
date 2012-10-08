@@ -28,8 +28,6 @@ class NagiosPlugin(object):
             'UNKNOWN'   : 3
             }
 #        self._debugIsEnabled = False
-
-#        import argparse
         self._argParser = argparse.ArgumentParser(description = 'Check a web page') # TODO : this is not GENERIC ! Fix it now !
         self._argDict   = {}
 
@@ -46,9 +44,20 @@ class NagiosPlugin(object):
             help        = argData['help']
             )
         self._argDict[argData['longOption']] = {
-            'value' : 0,
-            'rule'  : argData['rule']
+            'value'         : 0,
+            'rule'          : argData['rule'],
+            'orArgGroup'    : self._getOrArgGroup(argData)
             }
+
+
+    def _getOrArgGroup(self, argData):
+        """
+            'Or arg. groups' are groups of optional arguments where AT LEAST 1 argument MUST BE provided
+        """
+        try:
+            return argData['orArgGroup']
+        except KeyError:
+            return None
 
 
     def declareArgumentDebug(self):

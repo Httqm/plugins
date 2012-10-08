@@ -10,8 +10,8 @@
 #
 # COMMAND LINE :
 #   SEARCHING MATCHSTRING ON WEB PAGE :
-#   ./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" --httpMethod="GET" --httpStatusCode 200 --matchString="l.amour.est.dans.le.pre" -w 2500 -c 4000 --debug
-
+#   ./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" --httpMethod="GET" --httpStatusCode 200 --matchString="kate" -w 2500 -c 4000 --debug
+#
 #   PLAYING WITH EXPECTED HTTP STATUS CODES :
 #   ./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="origin-www.voici.fr" --httpMethod="GET" --httpStatusCode 301 --matchString="bla" -w 2500 -c 4000 --debug
 
@@ -24,6 +24,9 @@
 # - handle case when no matchstring is provided :
 #       1. no error when re.searching as it's empty
 #       2. if no string is provided, it means we don't care about strings matching, just HTTP codes (?)
+# ex: ./check_web.py --url="http://origin-www.voici.fr" --httpMethod="GET" --httpStatusCode 301 -w 2500 -c 4000 --debug
+#
+# prepare case matrix for different check types / results / exits
 # /TODO
 
 
@@ -89,8 +92,7 @@ class check_web(nagiosPlugin.NagiosPlugin):
         try:
             self._httpConnection = httplib.HTTPConnection(
                 self._objUrl.getHostName(),
-                self.getArgValue('httpPort'),
-#                timeout = TIMEOUTSECONDS   # this is managed globally
+                self.getArgValue('httpPort')
                 )
             #TODO : host must be HTTP (no httpS) and have no leading "http://"
         except socket.timeout, e:
@@ -114,7 +116,6 @@ class check_web(nagiosPlugin.NagiosPlugin):
                 self.getArgValue('httpMethod'),                 # method
                 self._objUrl.getQuery(),                        # request
                 {},                                             # body. Used only for POST (?)
-#                {'Host': self.getArgValue('httpHostHeader')}    # headers
                 {'Host': self._httpHostHeader}                  # headers
                 )
         except socket.timeout, e:
@@ -158,21 +159,29 @@ class check_web(nagiosPlugin.NagiosPlugin):
         return True if re.search(self.getArgValue('matchString'), self._pageContent) else False
 
 
+    def _wasGivenAsPluginParameter(self, params):
+#        self._objDebug.show('parameter value : ' + self.getArgValue(params['pluginParameterName']))
+        return True if self.getArgValue(params['pluginParameterName']) != None else False
+
+
     def checkResult(self):
         """
-        We're happy if :
-         - the HTTP status code we received is the expected one
-         - AND the match string is found in the returned content
-         - AND all of this happens BEFORE the timeout
+        The final result is computed in this order :
+            1. timeout :                CRITICAL / UNKNOWN if this happens (TODO : make up your mind !). No timeout if we arrive here.
+            2. httpStatusCode (default : 200) :         CRITICAL if not received as expected. Otherwise continue
+            3. matchString :            CRITICAL if not found. Otherwise continue
+            4. warn/crit thresholds :   OK / WARNING / CRITICAL based on values.
         """
-        if not self._receivedTheExpectedHttpStatusCode():
+
+#        self._objDebug.show('Expected HTTP status code : ' + self.getArgValue('httpStatusCode'))
+        if self._wasGivenAsPluginParameter({'pluginParameterName' : 'httpStatusCode'}) and not self._receivedTheExpectedHttpStatusCode():
             self.exit({
                 'status'    : 'CRITICAL',
                 'message'   : 'Expected HTTP status code : ' + self.getArgValue('httpStatusCode') +', received : ' + `self._httpStatusCode`,
                 'perfdata'  : '1234'
                 })
 
-        if not self._matchStringWasFound():
+        if self._wasGivenAsPluginParameter({'pluginParameterName' : 'matchString'}) and not self._matchStringWasFound():
             self.exit({
                 'status'    : 'CRITICAL',
                 'message'   : 'Expected matchstring "' + self.getArgValue('matchString') + '" not found',
@@ -208,7 +217,7 @@ myPlugin.declareArgument({
     'required'      : True,
     'default'       : None,
     'help'          : 'URL of page to check ()with leading "http://"). To specify a port number, use the "httpPort" directive.',
-    'rule'          : 'http://[^:]*'
+    'rule'          : 'http://[^:]+'
     })
 
 myPlugin.declareArgument({
@@ -233,26 +242,28 @@ myPlugin.declareArgument({
     'shortOption'   : 's',
     'longOption'    : 'httpStatusCode',
     'required'      : False,
-    'default'       : '200',
+#    'default'       : '200',
+    'default'       : None,
     'help'          : 'The expected HTTP status code (optional. Defaults to 200)',
     'rule'          : '\d{3}'
+,'orArgGroup':'httpStatusCode_OR_matchString'
     })
 
 myPlugin.declareArgument({
     'shortOption'   : 'm',
     'longOption'    : 'matchString',
-#    'required'      : True,
     'required'      : False,
     'default'       : None,
     'help'          : 'String to search on page',
     'rule'          : '[\w \.-]+'
+,'orArgGroup':'httpStatusCode_OR_matchString'
     })
 
 myPlugin.declareArgument({
     'shortOption'   : 'w',
     'longOption'    : 'warning',
     'required'      : True,
-    'default'       : None,
+    'default'       : '',
     'help'          : 'warning threshold in ms',
     'rule'          : '(\d+:?|:\d+|\d+:\d+)'
     })
@@ -272,14 +283,13 @@ myPlugin.declareArgument({
     'required'      : False,
     'default'       : None,
     'help'          : 'HTTP host header (optional)',
-    'rule'          : '[\w\.\-]*'
+    'rule'          : '[\w\.\-]+'
     })
 
 myPlugin.declareArgumentDebug()
 myPlugin.readArgs()
 myPlugin.showArgs()
 
-#myDebug.show('url = ' + myPlugin.getArgValue('url'))
 
 myUrl       = url.Url({
     'full'  : myPlugin.getArgValue('url')
