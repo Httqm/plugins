@@ -115,9 +115,9 @@ class NagiosPlugin(object):
                 matchMessage = 'MATCHED :'
             else:
                 matchMessage = 'NO MATCH :-('
-                self._objDebug.die({'exitMessage': 'Invalid value "' + str(self._argDict[argName]['value']) \
+                self._objDebug.die(exitMessage = 'Invalid value "' + str(self._argDict[argName]['value']) \
                     + '" for argument "' + argName + '".' \
-                    + ' The validation rule (RegExp) is :\n\n\t' + self._argDict[argName]['rule'] + '\n' })
+                    + ' The validation rule (RegExp) is :\n\n\t' + self._argDict[argName]['rule'] + '\n')
 #            message = '(for "' + argName + '")' \
 #                + ' RULE : "' + self._argDict[argName]['rule'] \
 #                + '", VALUE : "' + str(self._argDict[argName]['value']) + '"'

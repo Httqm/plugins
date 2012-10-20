@@ -48,7 +48,7 @@ from modules import utility
 class check_web(nagiosPlugin.NagiosPlugin):
 
 
-    def getPage(self, params):
+    def getPage(self, objUrl):
 
         from modules import timer
 
@@ -59,7 +59,7 @@ class check_web(nagiosPlugin.NagiosPlugin):
         # will raise a 'socket.timeout' exception upon timeout
         # source : http://bytes.com/topic/python/answers/22953-how-catch-socket-timeout#post84566
 
-        self._objUrl = params['objUrl']
+        self._objUrl = objUrl
 #        self._objDebug.show('URL = ' + self.getArgValue('url'))
 
         self._getHttpHostHeader()
@@ -331,7 +331,7 @@ myUrl       = url.Url({
     })
 
 
-result = myPlugin.getPage({'objUrl' : myUrl})
+result = myPlugin.getPage(objUrl = myUrl)
 
 #myDebug.show('HTTP status code : '  + `result['httpStatusCode']`)
 #myDebug.show('Duration : '          + `result['durationMilliseconds']` + 'ms')
@@ -342,8 +342,6 @@ myPlugin.checkResult()
 
 
 
-
-#myDebug.die({'exitMessage': 'ARGL !'})
 
 
 # enable myPlugin timeout + interrupt. If timeout, exit as nagios status code "unknown" + exit message

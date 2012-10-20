@@ -7,14 +7,18 @@ class Debug(object):
         self._show  = False
 
 
-    def enable(self, param):
-        self._show = True if param else False
+    def enable(self, enabledByCaller):
+        self._show = True if enabledByCaller else False
 
 
-    def die(self, params):
-        """ Display an error message and leave the program. """
-        print (params['exitMessage'])
-        self._mySys.exit(2)
+    def die(self, exitMessage, exitCode=2):
+        """
+        Display an error message and leave the program.
+
+        The defaut exit code is 2 to identify cases when a script was terminated through this function.
+        """
+        print (exitMessage)
+        self._mySys.exit(exitCode)
 
 
     def show(self, message):
