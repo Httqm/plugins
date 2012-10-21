@@ -16,8 +16,8 @@ import re
 
 class Url(object):
 
-    def __init__(self, params):
-        self._full = params['full']
+    def __init__(self, full):
+        self._full = full
 
 
     def getFullUrl(self):

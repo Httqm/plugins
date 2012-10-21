@@ -20,17 +20,16 @@ class NagiosPlugin(object):
 ########################################## ##########################################################
 # CONSTRUCTOR
 
-    def __init__(self, params):
-        self._name          = params['name']
-        self._objDebug      = params['objDebug']
-        self._objUtility    = params['objUtility']
+    def __init__(self, name, objDebug, objUtility):
+        self._name          = name
+        self._objDebug      = objDebug
+        self._objUtility    = objUtility
         self._exitCodes     = {
             'OK'        : 0,
             'WARNING'   : 1,
             'CRITICAL'  : 2,
             'UNKNOWN'   : 3
             }
-#        self._debugIsEnabled = False
         self._argParser = argparse.ArgumentParser(description = 'Check a web page') # TODO : this is not GENERIC ! Fix it now !
         self._argDict   = {}
 
@@ -76,12 +75,12 @@ class NagiosPlugin(object):
         return getattr(self._args, argName)
 
 
-    def exit(self, params):
+    def exit(self, status, message, perdata):
         self._mySys = __import__('sys')
 
-        output = self._name + ' : ' + params['status'] + '. ' + params['message'] + '|' + params['perfdata']
+        output = self._name + ' : ' + status + '. ' + message + '|' + perfdata
         print output
-        self._mySys.exit(self._exitCodes[params['status']])
+        self._mySys.exit(self._exitCodes[status])
 
 
 ########################################## ##########################################################
@@ -138,7 +137,7 @@ class NagiosPlugin(object):
 
     def _getOrArgGroup(self, argData):
         """
-            'Or arg. groups' are groups of optional arguments where AT LEAST 1 argument MUST BE provided
+        'Or arg. groups' are groups of optional arguments where AT LEAST 1 argument MUST BE provided.
         """
         try:
             return argData['orArgGroup']

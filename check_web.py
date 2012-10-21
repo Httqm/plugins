@@ -95,11 +95,11 @@ class check_web(nagiosPlugin.NagiosPlugin):
                 )
             #TODO : host must be HTTP (no httpS) and have no leading "http://"
         except socket.timeout, e:
-            self.exit({
-                'status'    : 'CRITICAL',
-                'message'   : 'Plugin timed out while opening connection.',
-                'perfdata'  : ''
-                })
+            self.exit(
+                status      = 'CRITICAL',
+                message     = 'Plugin timed out while opening connection.',
+                perfdata    = ''
+                )
 
 
     def _sendHttpRequest(self):
@@ -204,11 +204,11 @@ myUtility   = utility.Utility()
 myDebug     = debug.Debug()
 
 
-myPlugin    = check_web({
-    'name'          : 'CHECK WEB',
-    'objDebug'      : myDebug,
-    'objUtility'    : myUtility
-    })
+myPlugin    = check_web(
+    name        = 'CHECK WEB',
+    objDebug    = myDebug,
+    objUtility  = myUtility
+    )
 
 myPlugin.declareArgument({
     'shortOption'   : 'u',
@@ -243,7 +243,6 @@ myPlugin.declareArgument({
     'shortOption'   : 's',
     'longOption'    : 'httpStatusCode',
     'required'      : False,
-#    'default'       : '200',
     'default'       : None,
     'help'          : 'The expected HTTP status code (optional. Defaults to 200)',
     'rule'          : '\d{3}',
@@ -326,12 +325,10 @@ myPlugin.readArgs()
 myPlugin.showArgs()
 
 
-myUrl       = url.Url({
-    'full'  : myPlugin.getArgValue('url')
-    })
+myUrl       = url.Url(full=myPlugin.getArgValue('url'))
 
 
-result = myPlugin.getPage(objUrl = myUrl)
+result = myPlugin.getPage(objUrl=myUrl)
 
 #myDebug.show('HTTP status code : '  + `result['httpStatusCode']`)
 #myDebug.show('Duration : '          + `result['durationMilliseconds']` + 'ms')
