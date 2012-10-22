@@ -2,7 +2,6 @@
 
 import unittest
 
-
 ########################################## ##########################################################
 # allows importing from parent folder
 # source : http://stackoverflow.com/questions/714063/python-importing-modules-from-parent-folder
@@ -68,5 +67,6 @@ class test_Url(unittest.TestCase):
         self.assertEqual(obj.getHostName(), testUrl)
 
 
-if __name__ == '__main__':
-    unittest.main()
+# looks necessary only if this test is run manually (?)
+#if __name__ == '__main__':
+#    unittest.main()
