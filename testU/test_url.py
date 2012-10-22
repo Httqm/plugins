@@ -12,42 +12,60 @@ os.sys.path.insert(0,parentdir)
 ########################################## ##########################################################
 
 
-
-"""
-import os, sys, inspect
-# realpath() with make your script run, even if you symlink it :)
-cmd_folder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]))
-if cmd_folder not in sys.path:
-    sys.path.insert(0, cmd_folder)
-
-# use this if you want to include modules from a subforder
-cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile( inspect.currentframe() ))[0],"subfolder")))
-if cmd_subfolder not in sys.path:
-    sys.path.insert(0, cmd_subfolder)
-
-# Info:
-# cmd_folder = os.path.dirname(os.path.abspath(__file__)) # DO NOT USE __file__ !!!
-# __file__ fails if script is called in different ways on Windows
-# __file__ fails if someone does os.chdir() before
-# sys.argv[0] also fails because it doesn't not always contains the path
-"""
-
-
-
 import modules.url
 
 class test_Url(unittest.TestCase):
 
-    def test_getFullUrl_case1(self):
+    def test1_getFullUrl(self):
+        """
+        Given a URL,
+        should return the full URL.
+        """
         testUrl = 'http://www.google.be'
         obj     = modules.url.Url(full=testUrl)
         self.assertEqual(obj.getFullUrl(), testUrl)
-#        self.assertTrue(obj.returnTrue())
 
 
-#    def test_returnTrue_case2(self):
-#        obj = programm.MaClasse()
-#        self.assertNotEqual(obj.returnTrue(), False)
+    def test1_getQuery(self):
+        """
+        Given a short URL,
+        should return its 'HTTP query' part.
+        """
+        testUrl     = 'http://www.google.be'
+        obj         = modules.url.Url(full=testUrl)
+        self.assertEqual(obj.getQuery(), '/')
+
+
+    def test2_getQuery(self):
+        """
+        Given a long URL,
+        should return its 'HTTP query' part.
+        """
+        testQuery   = '/index.php'
+        testUrl     = 'http://www.bla.com' + testQuery
+        obj         = modules.url.Url(full=testUrl)
+        self.assertEqual(obj.getQuery(), testQuery)
+
+
+    def test1_getHostName(self):
+        """
+        Given a 'legal' URL,
+        should return its "hostname" part.
+        """
+        testHostName    = 'www.thisisnot.net'
+        testUrl         = 'http://' + testHostName + '/myPage.php'
+        obj             = modules.url.Url(full=testUrl)
+        self.assertEqual(obj.getHostName(), testHostName)
+
+
+    def test2_getHostName(self):
+        """
+        Given a wrong URL,
+        should return the full URL.
+        """
+        testUrl         = 'thisisawrongurl.com'
+        obj             = modules.url.Url(full=testUrl)
+        self.assertEqual(obj.getHostName(), testUrl)
 
 
 if __name__ == '__main__':
