@@ -1,23 +1,45 @@
 #!/usr/bin/env python
 
+# check_web.py - Copyright (C) 2012 Matthieu FOURNET, fournet.matthieu@gmail.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
 ######################################### check_web.py ##############################################
-# FUNCTION :
+# FUNCTION :    This plugin provides various means to check a web page :
+#                - query a web page and check its content for a keyword
+#                - query a web page and check its HTTP return code
+#                - or both
+#                - with or without using warn / crit duration thresholds on the page response time
 #
-# AUTHOR :	Matthieu FOURNET (fournet.matthieu@gmail.com)
-# LICENSE :	GPL - http://www.fsf.org/licenses/gpl.txt
+# VERSION :     20121023
 #
-# NOTES :	1.
-#
-# COMMAND LINE :
+# COMMAND LINE :    (the scissors 8< mean the command continues on the next line)
 #   SEARCHING MATCHSTRING ON WEB PAGE :
-#   ./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" --httpMethod="GET" --httpStatusCode 200 --matchString="kate" -w 2500 -c 4000 --debug
+#       ./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" 8<
+#           --httpMethod="GET" --httpStatusCode 200 --matchString="kate" -w 2500 -c 4000 --debug
 #
 #   PLAYING WITH EXPECTED HTTP STATUS CODES :
-#   ./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="origin-www.voici.fr" --httpMethod="GET" --httpStatusCode 301 --matchString="bla" -w 2500 -c 4000 --debug
-
+#       ./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="origin-www.voici.fr" 8<
+#           --httpMethod="GET" --httpStatusCode 301 --matchString="bla" -w 2500 -c 4000 --debug
+#
+# NOTES :	1. (none so far ;-)
+#
+# KNOWN BUGS AND LIMITATIONS :
+#               1. 
 #
 ########################################## ##########################################################
-
 
 
 # TODO :
@@ -28,7 +50,6 @@
 #
 # prepare case matrix for different check types / results / exits
 # /TODO
-
 
 
 #import urllib  # http://docs.python.org/library/urllib.html?highlight=urllib
