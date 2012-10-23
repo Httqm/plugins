@@ -9,3 +9,10 @@ class Utility(object):
             if keyLength > length:
                 length = keyLength
         return length
+
+
+    def computePercentage(self, number, total):
+        if total:
+            return (number * 1.0) / total * 100
+        else:
+            return 0
