@@ -67,6 +67,6 @@ class test_Url(unittest.TestCase):
         self.assertEqual(obj.getHostName(), testUrl)
 
 
-# looks necessary only if this test is run manually (?)
+# uncomment this to run this unit test manually
 #if __name__ == '__main__':
 #    unittest.main()

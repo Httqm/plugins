@@ -31,6 +31,6 @@ class test_Timer(unittest.TestCase):
         self.assertTrue((sleepDuration > sleepDurationMicroseconds) and (sleepDuration < (2 * sleepDurationMicroseconds)))
 
 
-# looks necessary only if this test is run manually (?)
+# uncomment this to run this unit test manually
 #if __name__ == '__main__':
 #    unittest.main()
