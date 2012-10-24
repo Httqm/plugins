@@ -87,9 +87,12 @@ class check_local_cpu(nagiosPlugin.NagiosPlugin):
 #        print self._cpuData
 
     def computeCpuUsagePercent(self):
+#        total = 0
         for fieldName in self._fields:
             self._cpuData[fieldName]['cpuPercent'] = myUtility.computePercentage(self._cpuData[fieldName]['cpuTime'], self._totalTime)
-        print self._cpuData
+            self._objDebug.show(fieldName + ' : ' + `self._cpuData[fieldName]['cpuPercent']` + ' %')
+#            total += self._cpuData[fieldName]['cpuPercent']
+#        print 'total percents = ' + `total` + '%'
 
         
 
@@ -116,19 +119,33 @@ myPlugin    = check_local_cpu(
     objUtility  = myUtility
     )
 
+myPlugin.declareArgument({
+    'shortOption'   : 'w',
+    'longOption'    : 'warning',
+    'required'      : True,
+    'default'       : '',
+    'help'          : 'warning threshold in ms',
+    'rule'          : '(\d+:?|:\d+|\d+:\d+)'
+    })
+
+myPlugin.declareArgument({
+    'shortOption'   : 'c',
+    'longOption'    : 'critical',
+    'required'      : True,
+    'default'       : None,
+    'help'          : 'critical threshold in ms',
+    'rule'          : ''
+    })
+
+
+myPlugin.declareArgumentDebug()
+myPlugin.readArgs()
+myPlugin.showArgs()
+
+
 myPlugin.getCpuTimes()
 myPlugin.computeCpuUsagePercent()
 """
-
-myPlugin.declareArgument({
-    'shortOption'   : 'u',
-    'longOption'    : 'url',
-    'required'      : True,
-    'default'       : None,
-    'help'          : 'URL of page to check ()with leading "http://"). To specify a port number, use the "httpPort" directive.',
-    'rule'          : 'http://[^:]+'
-    })
-
 
 myPlugin.declareArgumentDebug()
 myPlugin.readArgs()
