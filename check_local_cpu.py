@@ -37,7 +37,7 @@
 ########################################## ##########################################################
 
 
-from modules import checkLocalCpu
+from modules import CheckLocalCpu
 from modules import debug
 #from modules import nagiosPlugin
 from modules import utility
@@ -69,7 +69,7 @@ myUtility   = utility.Utility()
 
 myDebug     = debug.Debug()
 
-myPlugin    = checkLocalCpu.CheckLocalCpu(
+myPlugin    = CheckLocalCpu.CheckLocalCpu(
     name        = 'CHECK LOCAL CPU',
     objDebug    = myDebug,
     objUtility  = myUtility
