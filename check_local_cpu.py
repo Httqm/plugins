@@ -17,9 +17,9 @@
 #
 
 ######################################### check_local_cpu.py ########################################
-# FUNCTION :    This plugin 
+# FUNCTION :    This plugin ...
 #
-# VERSION :     20121023
+# VERSION :     20121024
 #
 # COMMAND LINE :    (the scissors 8< mean the command continues on the next line)
 #       ./check_local_cpu.py -w 75 -c 90 --debug
@@ -39,7 +39,6 @@
 
 from modules import CheckLocalCpu
 from modules import debug
-#from modules import nagiosPlugin
 from modules import utility
 
 
