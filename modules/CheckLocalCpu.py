@@ -47,19 +47,39 @@ class CheckLocalCpu(nagiosPlugin.NagiosPlugin):
 
 
     def computeCpuUsagePercent(self):
-#        total = 0
+        total = 0
+        self._cpuData['totalWithoutIdle'] = {'cpuPercent': 0}
         for fieldName in self._fields:
             self._cpuData[fieldName]['cpuPercent'] = self._objUtility.computePercentage(self._cpuData[fieldName]['cpuTime'], self._totalTime)
-            self._objDebug.show(fieldName + ' : ' + `self._cpuData[fieldName]['cpuPercent']` + ' %')
-#            total += self._cpuData[fieldName]['cpuPercent']
-#        print 'total percents = ' + `total` + '%'
+#            self._objDebug.show(fieldName + ' : ' + `self._cpuData[fieldName]['cpuPercent']` + ' %')
+            total               += self._cpuData[fieldName]['cpuPercent']
+            if fieldName != 'idle':
+                self._cpuData['totalWithoutIdle']['cpuPercent'] += self._cpuData[fieldName]['cpuPercent'] 
+#        self._objDebug.show('total percents               = ' + `total` + '%' \
+#            "\n              total percents (except idle) = " + `self._cpuData['totalWithoutIdle']['cpuPercent']` + '%')
+#        self._objDebug.show(self._cpuData)
 
         
-    def computeOutput(self):
+#    def computeOutput(self):
+    def computeOutput(self, warningThreshold, criticalThreshold):
         """
-        Check the highest of CPU usages, and check it against the warn/crit thresholds
+        Compare the 'totalWithoutIdle' CPU time VS the warn / crit thresholds
         """
-        pass
+        cpuUsage            = self._cpuData['totalWithoutIdle']['cpuPercent']
+#        warningThreshold    = self.getArgValue('warning')
+#        criticalThreshold   = self.getArgValue('critical')
+        self._objDebug.show('CPU usage : ' + `cpuUsage` + '%' \
+            + "\nWarning threshold : " + `warningThreshold` \
+            + "\nCritical threshold : " + `criticalThreshold` )
+
+        self._exitCode = None
+        if(cpuUsage < warningThreshold):
+            self._exitCode = self._exitCodes['OK']
+        elif(cpuUsage > criticalThreshold):
+            self._exitCode = self._exitCodes['CRITICAL']
+        else:
+            self._exitCode = self._exitCodes['WARNING']
+        self._objDebug.show('Exit code : ' + `self._exitCode`)
 
 
     def buildPerfData(self):

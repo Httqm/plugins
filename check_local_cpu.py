@@ -100,7 +100,13 @@ myPlugin.showArgs()
 myPlugin.getCpuTimes()
 myPlugin.computeCpuUsagePercent()
 
-myPlugin.computeOutput()
+#myDebug.show('WARNING = ' + myPlugin.getArgValue('warning'))
+#myDebug.show('CRITICAL = ' + myPlugin.getArgValue('critical'))
+
+myPlugin.computeOutput(
+    warningThreshold    = myPlugin.getArgValue('warning'),
+    criticalThreshold   = myPlugin.getArgValue('critical')
+    )
 
 myPlugin.buildPerfData()
 myPlugin.exit()
