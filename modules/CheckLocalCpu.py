@@ -22,11 +22,11 @@
 # VERSION :     20121024
 ########################################## ##########################################################
 
-import nagiosPlugin
+import NagiosPlugin
 import psutil
 
 
-class CheckLocalCpu(nagiosPlugin.NagiosPlugin):
+class CheckLocalCpu(NagiosPlugin.NagiosPlugin):
 
     def getCpuTimes(self):
         # help with named tuples :

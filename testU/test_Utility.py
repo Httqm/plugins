@@ -12,7 +12,7 @@ os.sys.path.insert(0,parentdir)
 ########################################## ##########################################################
 
 
-import modules.utility as utility
+import modules.Utility as Utility
 
 
 class test_Utility(unittest.TestCase):
@@ -22,7 +22,7 @@ class test_Utility(unittest.TestCase):
         Given a number and a total (both are >0)
 	should return a percentage (float) : 0 <= number <= 100
         """
-        myUtility   = utility.Utility()
+        myUtility   = Utility.Utility()
         number      = 12
         total       = 42
         percentage  = myUtility.computePercentage(number, total)
@@ -34,7 +34,7 @@ class test_Utility(unittest.TestCase):
         Given any number and total == 0
 	should return 0
         """
-        myUtility   = utility.Utility()
+        myUtility   = Utility.Utility()
         number      = 12
         total       = 0
         expected    = 0

@@ -14,8 +14,8 @@ os.sys.path.insert(0,parentdir)
 
 
 from modules import CheckLocalCpu
-from modules import utility
-from modules import debug
+from modules import Utility
+from modules import Debug
 
 
 class test_CheckLocalCpu(unittest.TestCase):
@@ -25,8 +25,8 @@ class test_CheckLocalCpu(unittest.TestCase):
         Given a CPU load < warn threshold
 	should return the 'OK' Nagios plugin exit code
         """
-        self._objUtility    = utility.Utility()
-        self._objDebug      = debug.Debug()
+        self._objUtility    = Utility.Utility()
+        self._objDebug      = Debug.Debug()
         myPlugin    = CheckLocalCpu.CheckLocalCpu(
             name        = 'CHECK LOCAL CPU',
             objDebug    = self._objDebug,

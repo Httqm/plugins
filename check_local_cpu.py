@@ -38,8 +38,8 @@
 
 
 from modules import CheckLocalCpu
-from modules import debug
-from modules import utility
+from modules import Debug
+from modules import Utility
 
 
 """
@@ -64,9 +64,9 @@ for truc in cpuTimes:
 
 
 
-myUtility   = utility.Utility()
+myUtility   = Utility.Utility()
 
-myDebug     = debug.Debug()
+myDebug     = Debug.Debug()
 
 myPlugin    = CheckLocalCpu.CheckLocalCpu(
     name        = 'CHECK LOCAL CPU',
