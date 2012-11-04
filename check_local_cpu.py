@@ -69,6 +69,7 @@ myDebug     = Debug.Debug()
 
 myPlugin    = CheckLocalCpu.CheckLocalCpu(
     name        = 'CHECK LOCAL CPU',
+    description = 'Check the local CPU usage.',
     objDebug    = myDebug,
     objUtility  = myUtility
     )
@@ -78,7 +79,7 @@ myPlugin.declareArgument({
     'longOption'    : 'warning',
     'required'      : True,
     'default'       : '',
-    'help'          : 'warning threshold in ms',
+    'help'          : 'warning threshold in %%',    # '%%' escapes the '%' sign
     'rule'          : '(\d+:?|:\d+|\d+:\d+)'
     })
 
@@ -87,14 +88,14 @@ myPlugin.declareArgument({
     'longOption'    : 'critical',
     'required'      : True,
     'default'       : None,
-    'help'          : 'critical threshold in ms',
+    'help'          : 'critical threshold in %%',
     'rule'          : ''
     })
 
 
 myPlugin.declareArgumentDebug()
 myPlugin.readArgs()
-myPlugin.showArgs()
+#myPlugin.showArgs()
 
 myPlugin.getCpuTimes()
 myPlugin.computeCpuUsagePercent()

@@ -72,16 +72,25 @@ class CheckLocalCpu(NagiosPlugin.NagiosPlugin):
         Compare the 'totalWithoutIdle' CPU time VS the warn / crit thresholds
         and return the corresponding exit code.
         """
-        cpuUsage = self._cpuData['totalWithoutIdle']['cpuPercent']
-        self._objDebug.show('CPU usage : ' + `cpuUsage` + '%' \
-            + "\nWarning threshold : " + `warningThreshold` \
-            + "\nCritical threshold : " + `criticalThreshold` )
+        # /!\ Thresholds are internally known as strings
+        warningThreshold    = int(warningThreshold)
+        criticalThreshold   = int(criticalThreshold)
 
-        self._exitCode = None
+        cpuUsage            = self._cpuData['totalWithoutIdle']['cpuPercent']
+        self._exitCode      = None
+
         if(cpuUsage < warningThreshold):
-            self._exitCode = self._exitCodes['OK']
+            self._exitStatus = 'OK'
         elif(cpuUsage > criticalThreshold):
-            self._exitCode = self._exitCodes['CRITICAL']
+            self._exitStatus = 'CRITICAL'
         else:
-            self._exitCode = self._exitCodes['WARNING']
-        self._objDebug.show('Exit code : ' + `self._exitCode`)
+            self._exitStatus = 'WARNING'
+
+        self._exitCode = self._exitCodes[self._exitStatus]
+
+        self._objDebug.show('CPU usage : ' + `cpuUsage` + '%' \
+            + "\nWarning threshold : " + str(warningThreshold) \
+            + "\nCritical threshold : " + str(criticalThreshold) \
+            + "\nExit code : " + str(self._exitCode) \
+            + "\nExit status : " + self._exitStatus
+            )
