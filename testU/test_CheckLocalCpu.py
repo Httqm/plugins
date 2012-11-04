@@ -39,18 +39,7 @@ class test_CheckLocalCpu(unittest.TestCase):
             objUtility  = self._objUtility
             )
 
-        myPlugin._cpuData = {
-#            'softirq'   : {'cpuPercent': 1.0,   'cpuTime': 12.12},
-#            'iowait'    : {'cpuPercent': 1.0,   'cpuTime': 12.12},
-#            'system'    : {'cpuPercent': 1.0,   'cpuTime': 12.12},
-#            'idle'      : {'cpuPercent': 90.0,  'cpuTime': 12.12},
-#            'user'      : {'cpuPercent': 5.0,   'cpuTime': 12.12},
-#            'irq'       : {'cpuPercent': 1.0,   'cpuTime': 12.12},
-#            'nice'      : {'cpuPercent': 1.0,   'cpuTime': 12.12},
-
-#            'totalWithoutIdle'      : {'cpuPercent': 76.0,   'cpuTime': 12.12}
-            'totalWithoutIdle': {'cpuPercent': warning - 1, 'cpuTime': 12.34}
-            }
+        myPlugin.cpuUsagePercent = warning - 1
 
         myPlugin.computeExitCode(warningThreshold=warning, criticalThreshold=critical)
         self.assertEqual(myPlugin._exitCode, myPlugin._exitCodes['OK'])
@@ -70,9 +59,7 @@ class test_CheckLocalCpu(unittest.TestCase):
             objUtility  = self._objUtility
             )
 
-        myPlugin._cpuData = {
-            'totalWithoutIdle': {'cpuPercent': critical - 1, 'cpuTime': 12.34}
-            }
+        myPlugin.cpuUsagePercent = critical - 1
 
         myPlugin.computeExitCode(warningThreshold=warning, criticalThreshold=critical)
         self.assertEqual(myPlugin._exitCode, myPlugin._exitCodes['WARNING'])
@@ -92,9 +79,7 @@ class test_CheckLocalCpu(unittest.TestCase):
             objUtility  = self._objUtility
             )
 
-        myPlugin._cpuData = {
-            'totalWithoutIdle': {'cpuPercent': critical + 1, 'cpuTime': 12.34}
-            }
+        myPlugin.cpuUsagePercent = critical + 1
 
         myPlugin.computeExitCode(warningThreshold=warning, criticalThreshold=critical)
         self.assertEqual(myPlugin._exitCode, myPlugin._exitCodes['CRITICAL'])
