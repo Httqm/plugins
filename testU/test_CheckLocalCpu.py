@@ -76,6 +76,27 @@ class test_CheckLocalCpu(unittest.TestCase):
         myPlugin.computeOutput(warningThreshold=warning, criticalThreshold=critical)
         self.assertEqual(myPlugin._exitCode, myPlugin._exitCodes['WARNING'])
 
+
+    def test3_computeOutput(self):
+        """
+        Given a CPU load > crit threshold
+	should return the 'CRITICAL' Nagios plugin exit code
+        """
+        self._objUtility    = Utility.Utility()
+        self._objDebug      = Debug.Debug()
+        myPlugin    = CheckLocalCpu.CheckLocalCpu(
+            name        = 'CHECK LOCAL CPU',
+            objDebug    = self._objDebug,
+            objUtility  = self._objUtility
+            )
+
+        myPlugin._cpuData = {
+            'totalWithoutIdle': {'cpuPercent': critical + 1, 'cpuTime': 12.34}
+            }
+
+        myPlugin.computeOutput(warningThreshold=warning, criticalThreshold=critical)
+        self.assertEqual(myPlugin._exitCode, myPlugin._exitCodes['CRITICAL'])
+
         
 
 # uncomment this to run this unit test manually
