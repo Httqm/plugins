@@ -16,10 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-######################################### check_local_cpu.py ########################################
+######################################### CheckLocalCpu.py ##########################################
 # MODULE PART
 #
-# VERSION :     20121024
+# VERSION :     20121104
 ########################################## ##########################################################
 
 import NagiosPlugin
@@ -28,6 +28,14 @@ import psutil
 
 class CheckLocalCpu(NagiosPlugin.NagiosPlugin):
 
+
+    def getCpuUsagePercent(self):
+        self.cpuUsagePercent = psutil.cpu_percent(interval=1)
+        self._objDebug.show(self.cpuUsagePercent)
+       
+
+
+    """
     def getCpuTimes(self):
         # help with named tuples :
         # http://stackoverflow.com/questions/2970608/what-are-named-tuples-in-python
@@ -44,6 +52,9 @@ class CheckLocalCpu(NagiosPlugin.NagiosPlugin):
             self._cpuData[fieldName]['cpuTime'] = time
             self._totalTime += time
 #        print self._cpuData
+
+
+
 
 
     def computeCpuUsagePercent(self):
@@ -65,6 +76,7 @@ class CheckLocalCpu(NagiosPlugin.NagiosPlugin):
 #            "\n              total percents (except idle) = " + `self._cpuData['totalWithoutIdle']['cpuPercent']` + '%')
         # /DEBUG
         self.cpuUsagePercent = round(self._cpuData['totalWithoutIdle']['cpuPercent'], self._decimalPlaces)
+    """
 
         
     def computeExitCode(self, warningThreshold, criticalThreshold):
@@ -76,19 +88,19 @@ class CheckLocalCpu(NagiosPlugin.NagiosPlugin):
         warningThreshold    = int(warningThreshold)
         criticalThreshold   = int(criticalThreshold)
 
-        cpuUsage            = self._cpuData['totalWithoutIdle']['cpuPercent']
+#        cpuUsage            = self._cpuData['totalWithoutIdle']['cpuPercent']
         self._exitCode      = None
 
-        if(cpuUsage < warningThreshold):
+        if(self.cpuUsagePercent < warningThreshold):
             self._exitStatus = 'OK'
-        elif(cpuUsage > criticalThreshold):
+        elif(self.cpuUsagePercent > criticalThreshold):
             self._exitStatus = 'CRITICAL'
         else:
             self._exitStatus = 'WARNING'
 
         self._exitCode = self._exitCodes[self._exitStatus]
 
-        self._objDebug.show('CPU usage : ' + `cpuUsage` + '%' \
+        self._objDebug.show('CPU usage : ' + `self.cpuUsagePercent` + '%' \
             + "\nWarning threshold : " + str(warningThreshold) \
             + "\nCritical threshold : " + str(criticalThreshold) \
             + "\nExit code : " + str(self._exitCode) \

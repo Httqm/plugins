@@ -97,8 +97,14 @@ myPlugin.declareArgumentDebug()
 myPlugin.readArgs()
 #myPlugin.showArgs()
 
-myPlugin.getCpuTimes()
-myPlugin.computeCpuUsagePercent()
+
+
+#myPlugin.getCpuTimes()
+#myPlugin.computeCpuUsagePercent()
+myPlugin.getCpuUsagePercent()
+
+
+
 
 #myDebug.show('WARNING = ' + myPlugin.getArgValue('warning'))
 #myDebug.show('CRITICAL = ' + myPlugin.getArgValue('critical'))
