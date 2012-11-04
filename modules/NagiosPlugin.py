@@ -33,6 +33,7 @@ class NagiosPlugin(object):
         self._argParser = argparse.ArgumentParser(description = 'Check a web page') # TODO : this is not GENERIC ! Fix it now !
         self._argDict   = {}
         self._perfData  = ''
+        self._decimalPlaces = 3
 
 
 ########################################## ##########################################################
@@ -191,7 +192,7 @@ class NagiosPlugin(object):
         Perfdata :  http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN201
         Format :    'label'=value[UOM];[warn];[crit];[min];[max]
         """
-        self._perfData += label + '=' + `value` + uom + ';' + str(warn) + ';' + str(crit) + ';' + str(min) + ';' + str(max) + ' '
+        self._perfData += label + '=' + str(value) + uom + ';' + str(warn) + ';' + str(crit) + ';' + str(min) + ';' + str(max) + ' '
         self._objDebug.show('PERFDATA : ' + self._perfData)
 
 

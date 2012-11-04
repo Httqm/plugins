@@ -108,8 +108,6 @@ myPlugin.computeExitCode(
     )
 
 
-
-#myPlugin.buildPerfData()
 myPlugin.addPerfData(
     label   = 'CPU usage',
     value   = myPlugin.cpuUsagePercent,
