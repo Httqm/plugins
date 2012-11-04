@@ -32,53 +32,8 @@ class CheckLocalCpu(NagiosPlugin.NagiosPlugin):
     def getCpuUsagePercent(self):
         self.cpuUsagePercent = psutil.cpu_percent(interval=1)
         self._objDebug.show(self.cpuUsagePercent)
-       
 
 
-    """
-    def getCpuTimes(self):
-        # help with named tuples :
-        # http://stackoverflow.com/questions/2970608/what-are-named-tuples-in-python
-        # http://pysnippet.blogspot.fr/2010/01/named-tuple.html
-        self._cpuTimes  = psutil.cpu_times()
-        self._cpuData   = {}
-#        print self._cpuTimes.user
-        self._fields    = ['user', 'nice', 'system', 'idle', 'iowait', 'irq', 'softirq']
-        self._totalTime = 0
-        for fieldName in self._fields:
-#            print fieldName
-            self._cpuData[fieldName] = {}
-            time = getattr(self._cpuTimes, fieldName)
-            self._cpuData[fieldName]['cpuTime'] = time
-            self._totalTime += time
-#        print self._cpuData
-
-
-
-
-
-    def computeCpuUsagePercent(self):
-        debugTotalPercents  = 0
-        debugCpuUsages      = ''
-
-        self._cpuData['totalWithoutIdle'] = {'cpuPercent': 0}
-        for fieldName in self._fields:
-            self._cpuData[fieldName]['cpuPercent'] = self._objUtility.computePercentage(self._cpuData[fieldName]['cpuTime'], self._totalTime)
-            debugCpuUsages += fieldName + ' : ' + `self._cpuData[fieldName]['cpuPercent']` + ' %' + '\n'
-            debugTotalPercents += self._cpuData[fieldName]['cpuPercent']
-            if fieldName != 'idle':
-                self._cpuData['totalWithoutIdle']['cpuPercent'] += self._cpuData[fieldName]['cpuPercent'] 
-
-        # DEBUG
-#        self._objDebug.show(self._cpuData)
-#        self._objDebug.show('CPU USAGES : ' + debugCpuUsages)
-#        self._objDebug.show('total percents               = ' + `debugTotalPercents` + '%' \
-#            "\n              total percents (except idle) = " + `self._cpuData['totalWithoutIdle']['cpuPercent']` + '%')
-        # /DEBUG
-        self.cpuUsagePercent = round(self._cpuData['totalWithoutIdle']['cpuPercent'], self._decimalPlaces)
-    """
-
-        
     def computeExitCode(self, warningThreshold, criticalThreshold):
         """
         Compare the 'totalWithoutIdle' CPU time VS the warn / crit thresholds
@@ -88,7 +43,6 @@ class CheckLocalCpu(NagiosPlugin.NagiosPlugin):
         warningThreshold    = int(warningThreshold)
         criticalThreshold   = int(criticalThreshold)
 
-#        cpuUsage            = self._cpuData['totalWithoutIdle']['cpuPercent']
         self._exitCode      = None
 
         if(self.cpuUsagePercent < warningThreshold):

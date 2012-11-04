@@ -99,8 +99,6 @@ myPlugin.readArgs()
 
 
 
-#myPlugin.getCpuTimes()
-#myPlugin.computeCpuUsagePercent()
 myPlugin.getCpuUsagePercent()
 
 
