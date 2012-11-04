@@ -47,27 +47,32 @@ class CheckLocalCpu(NagiosPlugin.NagiosPlugin):
 
 
     def computeCpuUsagePercent(self):
-        total = 0
+        debugTotalPercents  = 0
+        debugCpuUsages      = ''
+
         self._cpuData['totalWithoutIdle'] = {'cpuPercent': 0}
         for fieldName in self._fields:
             self._cpuData[fieldName]['cpuPercent'] = self._objUtility.computePercentage(self._cpuData[fieldName]['cpuTime'], self._totalTime)
-#            self._objDebug.show(fieldName + ' : ' + `self._cpuData[fieldName]['cpuPercent']` + ' %')
-            total               += self._cpuData[fieldName]['cpuPercent']
+            debugCpuUsages += fieldName + ' : ' + `self._cpuData[fieldName]['cpuPercent']` + ' %' + '\n'
+            debugTotalPercents += self._cpuData[fieldName]['cpuPercent']
             if fieldName != 'idle':
                 self._cpuData['totalWithoutIdle']['cpuPercent'] += self._cpuData[fieldName]['cpuPercent'] 
-#        self._objDebug.show('total percents               = ' + `total` + '%' \
-#            "\n              total percents (except idle) = " + `self._cpuData['totalWithoutIdle']['cpuPercent']` + '%')
+
+        # DEBUG
 #        self._objDebug.show(self._cpuData)
+#        self._objDebug.show('CPU USAGES : ' + debugCpuUsages)
+#        self._objDebug.show('total percents               = ' + `debugTotalPercents` + '%' \
+#            "\n              total percents (except idle) = " + `self._cpuData['totalWithoutIdle']['cpuPercent']` + '%')
+        # /DEBUG
+        self._cpuUsagePercent = self._cpuData['totalWithoutIdle']['cpuPercent']
 
         
-#    def computeOutput(self):
     def computeOutput(self, warningThreshold, criticalThreshold):
         """
         Compare the 'totalWithoutIdle' CPU time VS the warn / crit thresholds
+        and return the corresponding exit code.
         """
-        cpuUsage            = self._cpuData['totalWithoutIdle']['cpuPercent']
-#        warningThreshold    = self.getArgValue('warning')
-#        criticalThreshold   = self.getArgValue('critical')
+        cpuUsage = self._cpuData['totalWithoutIdle']['cpuPercent']
         self._objDebug.show('CPU usage : ' + `cpuUsage` + '%' \
             + "\nWarning threshold : " + `warningThreshold` \
             + "\nCritical threshold : " + `criticalThreshold` )
@@ -82,9 +87,15 @@ class CheckLocalCpu(NagiosPlugin.NagiosPlugin):
         self._objDebug.show('Exit code : ' + `self._exitCode`)
 
 
-    def buildPerfData(self):
-        pass
+#    def buildPerfData(self):
+#        self.addPerfData(
+#            label   = 'CPU usage',
+#            value   = self._cpuUsagePercent,
+#            uom     = '%',
+#            warn    = self.getArgValue('warning'),
+#            crit    = self.getArgValue('critical'),
+#            min     = 0,
+#            max     =100)
+#	#self._perfData = 'CPU usage : ' + self._cpuData['totalWithoutIdle']['cpuPercent'] + '%'
 
 
-    def exit(self):
-        pass

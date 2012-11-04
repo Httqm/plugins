@@ -108,5 +108,21 @@ myPlugin.computeOutput(
     criticalThreshold   = myPlugin.getArgValue('critical')
     )
 
-myPlugin.buildPerfData()
+
+
+#myPlugin.buildPerfData()
+myPlugin.addPerfData(
+    label   = 'CPU usage',
+    value   = myPlugin._cpuUsagePercent,
+    uom     = '%',
+    warn    = myPlugin.getArgValue('warning'),
+    crit    = myPlugin.getArgValue('critical'),
+    min     = 0,
+    max     =100)
+
+
+
+
+
+
 myPlugin.exit()

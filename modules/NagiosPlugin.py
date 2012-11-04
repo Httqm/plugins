@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-######################################### nagiosPlugin.py ###########################################
+######################################### NagiosPlugin.py ###########################################
 # FUNCTION :
 #
 # AUTHOR :	Matthieu FOURNET (fournet.matthieu@gmail.com)
@@ -32,6 +32,7 @@ class NagiosPlugin(object):
             }
         self._argParser = argparse.ArgumentParser(description = 'Check a web page') # TODO : this is not GENERIC ! Fix it now !
         self._argDict   = {}
+        self._perfData  = ''
 
 
 ########################################## ##########################################################
@@ -185,5 +186,12 @@ class NagiosPlugin(object):
         pass
 
 
-    def addPerfData(self):
+# 'label'=value[UOM];[warn];[crit];[min];[max]
+# http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN201
+    def addPerfData(self, label, value, uom, warn, crit, min, max):
+        self._perfData += label + '=' + `value` + uom + ';' + str(warn) + ';' + str(crit) + ';' + str(min) + ';' + str(max) + ' '
+        self._objDebug.show('PERFDATA : ' + self._perfData)
+
+
+    def exit(self):
         pass
