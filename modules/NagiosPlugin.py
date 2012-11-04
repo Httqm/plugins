@@ -20,7 +20,7 @@ class NagiosPlugin(object):
 ########################################## ##########################################################
 # CONSTRUCTOR
 
-    def __init__(self, name, objDebug, objUtility):
+    def __init__(self, name, description, objDebug, objUtility):
         self._name          = name
         self._objDebug      = objDebug
         self._objUtility    = objUtility
@@ -30,7 +30,10 @@ class NagiosPlugin(object):
             'CRITICAL'  : 2,
             'UNKNOWN'   : 3
             }
-        self._argParser = argparse.ArgumentParser(description = 'Check a web page') # TODO : this is not GENERIC ! Fix it now !
+
+        self._argParser = argparse.ArgumentParser(description = description)
+        # The "description" field will be displayed when invoking help (-h)
+
         self._argDict   = {}
         self._perfData  = ''
         self._decimalPlaces = 3
@@ -68,21 +71,27 @@ class NagiosPlugin(object):
 
     def showArgs(self):
         length  = self._objUtility.lengthOfLongestKey(self._argDict)
+        message = ''
         for argName in self._argDict:
-            print str(argName).rjust(length + 1) + ': ' + str(self._argDict[argName]['value'])
-#            print 'RULE : ' + self._argDict[argName]['rule']
+            message += '\n' + str(argName).rjust(length + 1) + ': ' + str(self._argDict[argName]['value'])
+        self._objDebug.show(message)
 
 
     def getArgValue(self, argName):
         return getattr(self._args, argName)
 
 
-    def exit(self, status, message, perdata):
-        self._mySys = __import__('sys')
+#    def exit(self, status, message, perdata):
+#        self._mySys = __import__('sys')
+#
+#        output = self._name + ' : ' + status + '. ' + message + '|' + perfdata
+#        print output
+#        self._mySys.exit(self._exitCodes[status])
 
-        output = self._name + ' : ' + status + '. ' + message + '|' + perfdata
-        print output
-        self._mySys.exit(self._exitCodes[status])
+    def exit(self):
+        self._mySys = __import__('sys')
+        print self._name + ' ' + self._exitStatus + '|' + self._perfData
+        self._mySys.exit(self._exitCode)
 
 
 ########################################## ##########################################################
@@ -153,11 +162,10 @@ class NagiosPlugin(object):
 
 
     def _getOrArgGroupsData(self):
-        self._objDebug.show(self._argDict)
+#        self._objDebug.show(self._argDict)
         groups = {}
         for argName in self._argDict:
             groupName = self._argDict[argName]['orArgGroup']    # because readability matters !
-#            print argName + ' ' + str(groupName) + ' ' + str(self._argDict[argName]['value'])
             if groupName:
                 argWasProvided = False if self._argDict[argName]['value'] == None else True
                 if groupName in groups:
@@ -170,7 +178,7 @@ class NagiosPlugin(object):
 
 
     def _alertOrArgGroupsMissingArgs(self):
-        self._objDebug.show(self._orArgGroupsData)
+#        self._objDebug.show(self._orArgGroupsData)
         orArgGroupsAreOkay  = True
         message             = ''
         for groupName in self._orArgGroupsData:
@@ -196,5 +204,3 @@ class NagiosPlugin(object):
         self._objDebug.show('PERFDATA : ' + self._perfData)
 
 
-    def exit(self):
-        pass

@@ -34,6 +34,7 @@ class test_CheckLocalCpu(unittest.TestCase):
         self._objDebug      = Debug.Debug()
         myPlugin    = CheckLocalCpu.CheckLocalCpu(
             name        = 'CHECK LOCAL CPU',
+            description = 'Check the local CPU usage.',
             objDebug    = self._objDebug,
             objUtility  = self._objUtility
             )
@@ -53,7 +54,6 @@ class test_CheckLocalCpu(unittest.TestCase):
 
         myPlugin.computeExitCode(warningThreshold=warning, criticalThreshold=critical)
         self.assertEqual(myPlugin._exitCode, myPlugin._exitCodes['OK'])
-#        self.assertEqual(True, True)
 
 
     def test2_computeExitCode(self):
@@ -65,6 +65,7 @@ class test_CheckLocalCpu(unittest.TestCase):
         self._objDebug      = Debug.Debug()
         myPlugin    = CheckLocalCpu.CheckLocalCpu(
             name        = 'CHECK LOCAL CPU',
+            description = 'Check the local CPU usage.',
             objDebug    = self._objDebug,
             objUtility  = self._objUtility
             )
@@ -86,6 +87,7 @@ class test_CheckLocalCpu(unittest.TestCase):
         self._objDebug      = Debug.Debug()
         myPlugin    = CheckLocalCpu.CheckLocalCpu(
             name        = 'CHECK LOCAL CPU',
+            description = 'Check the local CPU usage.',
             objDebug    = self._objDebug,
             objUtility  = self._objUtility
             )
@@ -100,5 +102,5 @@ class test_CheckLocalCpu(unittest.TestCase):
         
 
 # uncomment this to run this unit test manually
-if __name__ == '__main__':
-    unittest.main()
+#if __name__ == '__main__':
+#    unittest.main()
