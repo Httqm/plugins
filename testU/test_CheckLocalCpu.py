@@ -25,7 +25,7 @@ critical    = 90
 class test_CheckLocalCpu(unittest.TestCase):
 
 
-    def test1_computeOutput(self):
+    def test1_computeExitCode(self):
         """
         Given a CPU load < warn threshold
 	should return the 'OK' Nagios plugin exit code
@@ -51,12 +51,12 @@ class test_CheckLocalCpu(unittest.TestCase):
             'totalWithoutIdle': {'cpuPercent': warning - 1, 'cpuTime': 12.34}
             }
 
-        myPlugin.computeOutput(warningThreshold=warning, criticalThreshold=critical)
+        myPlugin.computeExitCode(warningThreshold=warning, criticalThreshold=critical)
         self.assertEqual(myPlugin._exitCode, myPlugin._exitCodes['OK'])
 #        self.assertEqual(True, True)
 
 
-    def test2_computeOutput(self):
+    def test2_computeExitCode(self):
         """
         Given a warn threshold < CPU load < crit threshold
 	should return the 'WARNING' Nagios plugin exit code
@@ -73,11 +73,11 @@ class test_CheckLocalCpu(unittest.TestCase):
             'totalWithoutIdle': {'cpuPercent': critical - 1, 'cpuTime': 12.34}
             }
 
-        myPlugin.computeOutput(warningThreshold=warning, criticalThreshold=critical)
+        myPlugin.computeExitCode(warningThreshold=warning, criticalThreshold=critical)
         self.assertEqual(myPlugin._exitCode, myPlugin._exitCodes['WARNING'])
 
 
-    def test3_computeOutput(self):
+    def test3_computeExitCode(self):
         """
         Given a CPU load > crit threshold
 	should return the 'CRITICAL' Nagios plugin exit code
@@ -94,7 +94,7 @@ class test_CheckLocalCpu(unittest.TestCase):
             'totalWithoutIdle': {'cpuPercent': critical + 1, 'cpuTime': 12.34}
             }
 
-        myPlugin.computeOutput(warningThreshold=warning, criticalThreshold=critical)
+        myPlugin.computeExitCode(warningThreshold=warning, criticalThreshold=critical)
         self.assertEqual(myPlugin._exitCode, myPlugin._exitCodes['CRITICAL'])
 
         

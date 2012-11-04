@@ -65,7 +65,6 @@ for truc in cpuTimes:
 
 
 myUtility   = Utility.Utility()
-
 myDebug     = Debug.Debug()
 
 myPlugin    = CheckLocalCpu.CheckLocalCpu(
@@ -103,7 +102,7 @@ myPlugin.computeCpuUsagePercent()
 #myDebug.show('WARNING = ' + myPlugin.getArgValue('warning'))
 #myDebug.show('CRITICAL = ' + myPlugin.getArgValue('critical'))
 
-myPlugin.computeOutput(
+myPlugin.computeExitCode(
     warningThreshold    = myPlugin.getArgValue('warning'),
     criticalThreshold   = myPlugin.getArgValue('critical')
     )
@@ -113,7 +112,7 @@ myPlugin.computeOutput(
 #myPlugin.buildPerfData()
 myPlugin.addPerfData(
     label   = 'CPU usage',
-    value   = myPlugin._cpuUsagePercent,
+    value   = myPlugin.cpuUsagePercent,
     uom     = '%',
     warn    = myPlugin.getArgValue('warning'),
     crit    = myPlugin.getArgValue('critical'),

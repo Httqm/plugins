@@ -64,10 +64,11 @@ class CheckLocalCpu(NagiosPlugin.NagiosPlugin):
 #        self._objDebug.show('total percents               = ' + `debugTotalPercents` + '%' \
 #            "\n              total percents (except idle) = " + `self._cpuData['totalWithoutIdle']['cpuPercent']` + '%')
         # /DEBUG
-        self._cpuUsagePercent = self._cpuData['totalWithoutIdle']['cpuPercent']
+        self.cpuUsagePercent = self._cpuData['totalWithoutIdle']['cpuPercent']
 
         
-    def computeOutput(self, warningThreshold, criticalThreshold):
+#    def computeOutput(self, warningThreshold, criticalThreshold):
+    def computeExitCode(self, warningThreshold, criticalThreshold):
         """
         Compare the 'totalWithoutIdle' CPU time VS the warn / crit thresholds
         and return the corresponding exit code.
@@ -85,17 +86,3 @@ class CheckLocalCpu(NagiosPlugin.NagiosPlugin):
         else:
             self._exitCode = self._exitCodes['WARNING']
         self._objDebug.show('Exit code : ' + `self._exitCode`)
-
-
-#    def buildPerfData(self):
-#        self.addPerfData(
-#            label   = 'CPU usage',
-#            value   = self._cpuUsagePercent,
-#            uom     = '%',
-#            warn    = self.getArgValue('warning'),
-#            crit    = self.getArgValue('critical'),
-#            min     = 0,
-#            max     =100)
-#	#self._perfData = 'CPU usage : ' + self._cpuData['totalWithoutIdle']['cpuPercent'] + '%'
-
-

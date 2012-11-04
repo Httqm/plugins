@@ -186,9 +186,11 @@ class NagiosPlugin(object):
         pass
 
 
-# 'label'=value[UOM];[warn];[crit];[min];[max]
-# http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN201
     def addPerfData(self, label, value, uom, warn, crit, min, max):
+        """
+        Perfdata :  http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN201
+        Format :    'label'=value[UOM];[warn];[crit];[min];[max]
+        """
         self._perfData += label + '=' + `value` + uom + ';' + str(warn) + ';' + str(crit) + ';' + str(min) + ';' + str(max) + ' '
         self._objDebug.show('PERFDATA : ' + self._perfData)
 
