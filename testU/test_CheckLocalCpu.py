@@ -34,9 +34,7 @@ class test_CheckLocalCpu(unittest.TestCase):
         self._objDebug      = Debug.Debug()
         myPlugin    = CheckLocalCpu.CheckLocalCpu(
             name        = 'CHECK LOCAL CPU',
-            description = 'Check the local CPU usage.',
             objDebug    = self._objDebug,
-            objUtility  = self._objUtility
             )
 
         myPlugin.cpuUsagePercent = warning - 1
@@ -54,9 +52,7 @@ class test_CheckLocalCpu(unittest.TestCase):
         self._objDebug      = Debug.Debug()
         myPlugin    = CheckLocalCpu.CheckLocalCpu(
             name        = 'CHECK LOCAL CPU',
-            description = 'Check the local CPU usage.',
             objDebug    = self._objDebug,
-            objUtility  = self._objUtility
             )
 
         myPlugin.cpuUsagePercent = critical - 1
@@ -74,9 +70,7 @@ class test_CheckLocalCpu(unittest.TestCase):
         self._objDebug      = Debug.Debug()
         myPlugin    = CheckLocalCpu.CheckLocalCpu(
             name        = 'CHECK LOCAL CPU',
-            description = 'Check the local CPU usage.',
             objDebug    = self._objDebug,
-            objUtility  = self._objUtility
             )
 
         myPlugin.cpuUsagePercent = critical + 1

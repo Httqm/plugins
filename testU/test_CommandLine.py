@@ -129,5 +129,5 @@ class test_CommandLine(unittest.TestCase):
         
 
 # uncomment this to run this unit test manually
-if __name__ == '__main__':
-    unittest.main()
+#if __name__ == '__main__':
+#    unittest.main()
