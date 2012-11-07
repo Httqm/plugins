@@ -20,17 +20,9 @@ class CommandLine(object):
 ########################################## ##########################################################
 # CONSTRUCTOR
 
-#    def __init__(self, name, description, objDebug, objUtility):
     def __init__(self, description, objDebug, objUtility):
-#        self._name          = name
         self._objDebug      = objDebug
         self._objUtility    = objUtility
- #       self._exitCodes     = {
- #           'OK'        : 0,
- #           'WARNING'   : 1,
- #           'CRITICAL'  : 2,
- #           'UNKNOWN'   : 3
- #           }
 
         self._argParser = argparse.ArgumentParser(description = description)
         # The "description" field will be displayed when invoking help (-h)
@@ -152,6 +144,8 @@ class CommandLine(object):
     def _getOrArgGroupsData(self):
 #        self._objDebug.show(self._argDict)
         groups = {}
+
+        # TODO : many nested blocks. check this !
         for argName in self._argDict:
             groupName = self._argDict[argName]['orArgGroup']    # because readability matters !
             if groupName:
@@ -176,8 +170,3 @@ class CommandLine(object):
                 message += 'One of these arguments is missing : ' + str(self._orArgGroupsData[groupName]['arguments']) + '\n'
         print message
         # TODO : do a 'nagios exit'
-
-########################################## ##########################################################
-
-    def _checkArgs(self):
-        pass

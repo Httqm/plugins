@@ -109,10 +109,6 @@ myPlugin.addPerfData(
     max     =100)
 
 
-
-
-
-
 myPlugin.exit()
 
 
