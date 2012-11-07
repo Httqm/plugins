@@ -83,16 +83,16 @@ if not myCommandLine.checkArgsMatchRules():
         exitStatus  = 'UNKNOWN',
         exitMessage = 'args dont match rules :-(')
 
+# TODO : check that warning < critical and that kind of things ;-)
+
 
 myPlugin.getCpuUsagePercent()
-
-
 
 
 #myDebug.show('WARNING = ' + myPlugin.getArgValue('warning'))
 #myDebug.show('CRITICAL = ' + myPlugin.getArgValue('critical'))
 
-myPlugin.computeExitCode(
+exitStatus = myPlugin.computeExitStatus(
     warningThreshold    = myCommandLine.getArgValue('warning'),
     criticalThreshold   = myCommandLine.getArgValue('critical')
     )
@@ -108,7 +108,7 @@ myPlugin.addPerfData(
     max     =100)
 
 # TODO : determine exitStatus
-myPlugin.exit(exitStatus  = 'UNKNOWN')
+myPlugin.exit(exitStatus  = exitStatus)
 
 
 

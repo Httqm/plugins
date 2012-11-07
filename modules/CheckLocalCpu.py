@@ -43,7 +43,8 @@ class CheckLocalCpu(NagiosPlugin.NagiosPlugin):
         warningThreshold    = int(warningThreshold)
         criticalThreshold   = int(criticalThreshold)
 
-        self._exitCode      = None
+#        self._exitCode      = None
+        exitCode      = None
 
         if(self.cpuUsagePercent < warningThreshold):
             self._exitStatus = 'OK'
@@ -52,11 +53,45 @@ class CheckLocalCpu(NagiosPlugin.NagiosPlugin):
         else:
             self._exitStatus = 'WARNING'
 
-        self._exitCode = self._exitCodes[self._exitStatus]
+#        self._exitCode = self._exitCodes[self._exitStatus]
+        exitCode = self._exitCodes[self._exitStatus]
 
         self._objDebug.show('CPU usage : ' + `self.cpuUsagePercent` + '%' \
             + "\nWarning threshold : " + str(warningThreshold) \
             + "\nCritical threshold : " + str(criticalThreshold) \
-            + "\nExit code : " + str(self._exitCode) \
+#            + "\nExit code : " + str(self._exitCode) \
+            + "\nExit code : " + str(exitCode) \
             + "\nExit status : " + self._exitStatus
             )
+        return exitCode
+
+
+    def computeExitStatus(self, warningThreshold, criticalThreshold):
+        """
+        Compare the 'totalWithoutIdle' CPU time VS the warn / crit thresholds
+        and return the corresponding exit code.
+        """
+        # /!\ Thresholds are internally known as strings
+        warningThreshold    = int(warningThreshold)
+        criticalThreshold   = int(criticalThreshold)
+
+        exitStatus = ''
+
+        if(self.cpuUsagePercent < warningThreshold):
+            exitStatus = 'OK'
+        elif(self.cpuUsagePercent > criticalThreshold):
+            exitStatus = 'CRITICAL'
+        else:
+            exitStatus = 'WARNING'
+
+        """
+        exitStatus = self._exitCodes[self._exitStatus]
+
+        self._objDebug.show('CPU usage : ' + `self.cpuUsagePercent` + '%' \
+            + "\nWarning threshold : " + str(warningThreshold) \
+            + "\nCritical threshold : " + str(criticalThreshold) \
+#            + "\nExit code : " + str(exitCode) \
+            + "\nExit status : " + self._exitStatus
+            )
+        """
+        return exitStatus
