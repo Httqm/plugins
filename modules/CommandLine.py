@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-######################################### NagiosPlugin.py ###########################################
+######################################### CommandLine.py ############################################
 # FUNCTION :
 #
 # AUTHOR :	Matthieu FOURNET (fournet.matthieu@gmail.com)
@@ -11,31 +11,31 @@
 ########################################## ##########################################################
 
 
-#import argparse
-#import re
+import argparse
+import re
 
 
-class NagiosPlugin(object):
+class CommandLine(object):
 
 ########################################## ##########################################################
 # CONSTRUCTOR
 
 #    def __init__(self, name, description, objDebug, objUtility):
-    def __init__(self, name, objDebug, objUtility):
-        self._name          = name
+    def __init__(self, description, objDebug, objUtility):
+#        self._name          = name
         self._objDebug      = objDebug
         self._objUtility    = objUtility
-        self._exitCodes     = {
-            'OK'        : 0,
-            'WARNING'   : 1,
-            'CRITICAL'  : 2,
-            'UNKNOWN'   : 3
-            }
+ #       self._exitCodes     = {
+ #           'OK'        : 0,
+ #           'WARNING'   : 1,
+ #           'CRITICAL'  : 2,
+ #           'UNKNOWN'   : 3
+ #           }
 
- #       self._argParser = argparse.ArgumentParser(description = description)
+        self._argParser = argparse.ArgumentParser(description = description)
         # The "description" field will be displayed when invoking help (-h)
 
-#        self._argDict   = {}
+        self._argDict   = {}
         self._perfData  = ''
         self._decimalPlaces = 3
 
@@ -43,9 +43,8 @@ class NagiosPlugin(object):
 ########################################## ##########################################################
 # PUBLIC METHODS
 
-    """
     def declareArgument(self, argData):
-        # See : http://docs.python.org/library/argparse.html#the-add-argument-method
+        """ See : http://docs.python.org/library/argparse.html#the-add-argument-method """
         self._argParser.add_argument(
             '-'     + argData['shortOption'],
             '--'    + argData['longOption'],
@@ -82,25 +81,9 @@ class NagiosPlugin(object):
     def getArgValue(self, argName):
         return getattr(self._args, argName)
 
-    """
-
-#    def exit(self, status, message, perdata):
-#        self._mySys = __import__('sys')
-#
-#        output = self._name + ' : ' + status + '. ' + message + '|' + perfdata
-#        print output
-#        self._mySys.exit(self._exitCodes[status])
-
-    def exit(self):
-        self._mySys = __import__('sys')
-        print self._name + ' ' + self._exitStatus + '|' + self._perfData
-        self._mySys.exit(self._exitCode)
-
 
 ########################################## ##########################################################
 # THE 'DEBUG' COMMAND LINE ARGUMENT
-
-    """
 
     def declareArgumentDebug(self):
         self._argParser.add_argument(
@@ -152,7 +135,9 @@ class NagiosPlugin(object):
 # THE 'ORARGGROUPS'
 
     def _getOrArgGroup(self, argData):
-        #'Or arg. groups' are groups of optional arguments where AT LEAST 1 argument MUST BE provided.
+        """
+        'Or arg. groups' are groups of optional arguments where AT LEAST 1 argument MUST BE provided.
+        """
         try:
             return argData['orArgGroup']
         except KeyError:
@@ -196,13 +181,3 @@ class NagiosPlugin(object):
 
     def _checkArgs(self):
         pass
-
-    """
-
-    def addPerfData(self, label, value, uom, warn, crit, min, max):
-        """
-        Perfdata :  http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN201
-        Format :    'label'=value[UOM];[warn];[crit];[min];[max]
-        """
-        self._perfData += label + '=' + str(value) + uom + ';' + str(warn) + ';' + str(crit) + ';' + str(min) + ';' + str(max) + ' '
-        self._objDebug.show('PERFDATA : ' + self._perfData)

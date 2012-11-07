@@ -37,9 +37,84 @@
 ########################################## ##########################################################
 
 
+from modules import CommandLine
 from modules import CheckLocalCpu
 from modules import Debug
 from modules import Utility
+
+myUtility   = Utility.Utility()
+myDebug     = Debug.Debug()
+
+
+myCommandLine = CommandLine.CommandLine(
+    description = 'Check the local CPU usage.',
+    objDebug    = myDebug,
+    objUtility  = myUtility
+    )
+
+
+myPlugin    = CheckLocalCpu.CheckLocalCpu(
+    name        = 'CHECK LOCAL CPU',
+#    description = 'Check the local CPU usage.',
+    objDebug    = myDebug,
+    objUtility  = myUtility
+    )
+
+myCommandLine.declareArgument({
+    'shortOption'   : 'w',
+    'longOption'    : 'warning',
+    'required'      : True,
+    'default'       : '',
+    'help'          : 'warning threshold in %%',    # '%%' escapes the '%' sign
+    'rule'          : '(\d+:?|:\d+|\d+:\d+)'
+    })
+
+myCommandLine.declareArgument({
+    'shortOption'   : 'c',
+    'longOption'    : 'critical',
+    'required'      : True,
+    'default'       : None,
+    'help'          : 'critical threshold in %%',
+    'rule'          : ''
+    })
+
+
+myCommandLine.declareArgumentDebug()
+myCommandLine.readArgs()
+#myPlugin.showArgs()
+
+
+
+myPlugin.getCpuUsagePercent()
+
+
+
+
+#myDebug.show('WARNING = ' + myPlugin.getArgValue('warning'))
+#myDebug.show('CRITICAL = ' + myPlugin.getArgValue('critical'))
+
+myPlugin.computeExitCode(
+    warningThreshold    = myCommandLine.getArgValue('warning'),
+    criticalThreshold   = myCommandLine.getArgValue('critical')
+    )
+
+
+myPlugin.addPerfData(
+    label   = 'CPU usage',
+    value   = myPlugin.cpuUsagePercent,
+    uom     = '%',
+    warn    = myCommandLine.getArgValue('warning'),
+    crit    = myCommandLine.getArgValue('critical'),
+    min     = 0,
+    max     =100)
+
+
+
+
+
+
+myPlugin.exit()
+
 
 
 """
@@ -61,70 +136,3 @@ print cpuTimes
 for truc in cpuTimes:
     print truc
 """
-
-
-
-myUtility   = Utility.Utility()
-myDebug     = Debug.Debug()
-
-myPlugin    = CheckLocalCpu.CheckLocalCpu(
-    name        = 'CHECK LOCAL CPU',
-    description = 'Check the local CPU usage.',
-    objDebug    = myDebug,
-    objUtility  = myUtility
-    )
-
-myPlugin.declareArgument({
-    'shortOption'   : 'w',
-    'longOption'    : 'warning',
-    'required'      : True,
-    'default'       : '',
-    'help'          : 'warning threshold in %%',    # '%%' escapes the '%' sign
-    'rule'          : '(\d+:?|:\d+|\d+:\d+)'
-    })
-
-myPlugin.declareArgument({
-    'shortOption'   : 'c',
-    'longOption'    : 'critical',
-    'required'      : True,
-    'default'       : None,
-    'help'          : 'critical threshold in %%',
-    'rule'          : ''
-    })
-
-
-myPlugin.declareArgumentDebug()
-myPlugin.readArgs()
-#myPlugin.showArgs()
-
-
-
-myPlugin.getCpuUsagePercent()
-
-
-
-
-#myDebug.show('WARNING = ' + myPlugin.getArgValue('warning'))
-#myDebug.show('CRITICAL = ' + myPlugin.getArgValue('critical'))
-
-myPlugin.computeExitCode(
-    warningThreshold    = myPlugin.getArgValue('warning'),
-    criticalThreshold   = myPlugin.getArgValue('critical')
-    )
-
-
-myPlugin.addPerfData(
-    label   = 'CPU usage',
-    value   = myPlugin.cpuUsagePercent,
-    uom     = '%',
-    warn    = myPlugin.getArgValue('warning'),
-    crit    = myPlugin.getArgValue('critical'),
-    min     = 0,
-    max     =100)
-
-
-
-
-
-
-myPlugin.exit()
