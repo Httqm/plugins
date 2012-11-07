@@ -25,10 +25,10 @@ critical    = 90
 class test_CheckLocalCpu(unittest.TestCase):
 
 
-    def test1_computeExitCode(self):
+    def test1_computeExitStatus(self):
         """
         Given a CPU load < warn threshold
-	should return the 'OK' Nagios plugin exit code
+	should return the 'OK' Nagios plugin exit status
         """
         self._objUtility    = Utility.Utility()
         self._objDebug      = Debug.Debug()
@@ -39,14 +39,14 @@ class test_CheckLocalCpu(unittest.TestCase):
 
         myPlugin.cpuUsagePercent = warning - 1
 
-        myPlugin.computeExitCode(warningThreshold=warning, criticalThreshold=critical)
-        self.assertEqual(myPlugin._exitCode, myPlugin._exitCodes['OK'])
+        exitStatus = myPlugin.computeExitStatus(warningThreshold=warning, criticalThreshold=critical)
+        self.assertEqual(exitStatus, 'OK')
 
 
-    def test2_computeExitCode(self):
+    def test2_computeExitStatus(self):
         """
         Given a warn threshold < CPU load < crit threshold
-	should return the 'WARNING' Nagios plugin exit code
+	should return the 'WARNING' Nagios plugin exit status
         """
         self._objUtility    = Utility.Utility()
         self._objDebug      = Debug.Debug()
@@ -57,14 +57,14 @@ class test_CheckLocalCpu(unittest.TestCase):
 
         myPlugin.cpuUsagePercent = critical - 1
 
-        myPlugin.computeExitCode(warningThreshold=warning, criticalThreshold=critical)
-        self.assertEqual(myPlugin._exitCode, myPlugin._exitCodes['WARNING'])
+        exitStatus = myPlugin.computeExitStatus(warningThreshold=warning, criticalThreshold=critical)
+        self.assertEqual(exitStatus, 'WARNING')
 
 
-    def test3_computeExitCode(self):
+    def test3_computeExitStatus(self):
         """
         Given a CPU load > crit threshold
-	should return the 'CRITICAL' Nagios plugin exit code
+	should return the 'CRITICAL' Nagios plugin exit status
         """
         self._objUtility    = Utility.Utility()
         self._objDebug      = Debug.Debug()
@@ -75,10 +75,9 @@ class test_CheckLocalCpu(unittest.TestCase):
 
         myPlugin.cpuUsagePercent = critical + 1
 
-        myPlugin.computeExitCode(warningThreshold=warning, criticalThreshold=critical)
-        self.assertEqual(myPlugin._exitCode, myPlugin._exitCodes['CRITICAL'])
+        exitStatus = myPlugin.computeExitStatus(warningThreshold=warning, criticalThreshold=critical)
+        self.assertEqual(exitStatus, 'CRITICAL')
 
-        
 
 # uncomment this to run this unit test manually
 #if __name__ == '__main__':
