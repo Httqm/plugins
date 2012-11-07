@@ -78,6 +78,10 @@ myCommandLine.declareArgumentDebug()
 myCommandLine.readArgs()
 #myCommandLine.showArgs()
 
+if not myCommandLine.checkArgsMatchRules():
+    myPlugin.exit(
+        exitStatus  = 'UNKNOWN',
+        exitMessage = 'args dont match rules :-(')
 
 
 myPlugin.getCpuUsagePercent()
@@ -103,8 +107,8 @@ myPlugin.addPerfData(
     min     = 0,
     max     =100)
 
-
-myPlugin.exit()
+# TODO : determine exitStatus
+myPlugin.exit(exitStatus  = 'UNKNOWN')
 
 
 

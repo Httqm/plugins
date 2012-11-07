@@ -20,15 +20,14 @@ from modules import Debug
 
 class test_CommandLine(unittest.TestCase):
 
-    def test1_validateArgs(self):
+    def test1_checkArgsMatchRules(self):
         """
         Given 2 valid arguments 'integer1' and 'integer2',
         Should return 'True'
         """
         integer1Value     = 12
-#        integer1Value     = 'a'
         integer2Value    = 42
-        integerRule     = '(\d+)'     
+        integerRule     = '(\d+)'
 
         myUtility       = Utility.Utility()
         myDebug         = Debug.Debug()
@@ -39,14 +38,6 @@ class test_CommandLine(unittest.TestCase):
             objUtility  = myUtility
             )
 
-        """
-        self._argDict[argData['longOption']] = {
-            'value'         : 0,
-            'rule'          : argData['rule'],
-            'orArgGroup'    : self._getOrArgGroup(argData)
-            }
-        myCommandLine._objDebug.enable(True)
-        """
         myCommandLine._argDict['integer1'] = {
             'value'         : integer1Value,
             'rule'          : integerRule,
@@ -58,17 +49,17 @@ class test_CommandLine(unittest.TestCase):
             'orArgGroup'    : 'aaa'
             }
 
-        self.assertEqual(myCommandLine._validateArgs(), True)
+        self.assertEqual(myCommandLine.checkArgsMatchRules(), True)
 
 
-    def test2_validateArgs(self):
+    def test2_checkArgsMatchRules(self):
         """
         Given 1 valid and 1 invalid argument 'integer1' and 'integer2',
         Should return 'False'
         """
         integer1Value     = 12
         integer2Value     = 'a'
-        integerRule     = '(\d+)'     
+        integerRule     = '(\d+)'
 
         myUtility       = Utility.Utility()
         myDebug         = Debug.Debug()
@@ -90,17 +81,17 @@ class test_CommandLine(unittest.TestCase):
             'orArgGroup'    : 'aaa'
             }
 
-        self.assertEqual(myCommandLine._validateArgs(), False)
+        self.assertEqual(myCommandLine.checkArgsMatchRules(), False)
 
 
-    def test3_validateArgs(self):
+    def test3_checkArgsMatchRules(self):
         """
         Given 2 invalid arguments 'integer1' and 'integer2',
         Should return 'False'
         """
         integer1Value     = 12.34
         integer2Value     = 'a'
-        integerRule     = '(\d+)'     
+        integerRule     = '(\d+)'
 
         myUtility       = Utility.Utility()
         myDebug         = Debug.Debug()
@@ -122,11 +113,8 @@ class test_CommandLine(unittest.TestCase):
             'orArgGroup'    : 'aaa'
             }
 
-        self.assertEqual(myCommandLine._validateArgs(), False)
+        self.assertEqual(myCommandLine.checkArgsMatchRules(), False)
 
-
-
-        
 
 # uncomment this to run this unit test manually
 #if __name__ == '__main__':

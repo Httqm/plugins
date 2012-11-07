@@ -39,7 +39,16 @@ class NagiosPlugin(object):
         self._objDebug.show('PERFDATA : ' + self._perfData)
 
 
-    def exit(self):
+#    def exit(self):
+#        self._mySys = __import__('sys')
+#        print self._name + ' ' + self._exitStatus + '|' + self._perfData
+#        self._mySys.exit(self._exitCode)
+
+
+    def exit(self, exitStatus, exitMessage=''):
         self._mySys = __import__('sys')
-        print self._name + ' ' + self._exitStatus + '|' + self._perfData
-        self._mySys.exit(self._exitCode)
+        outputMessage = self._name + ' ' + exitStatus + '. ' + exitMessage
+        if self._perfData:
+            outputMessage += '|' + self._perfData
+        print outputMessage
+        self._mySys.exit(self._exitCodes[exitStatus])
