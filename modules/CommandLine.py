@@ -59,7 +59,7 @@ class CommandLine(object):
             self._argDict[argName]['value'] = getattr(self._args, argName)
         self._detectDebugValue()
         self._checkOrArgGroups()
-        self._validateArgs()
+        self._validateArgs()    # TODO : exit if false
 
 
     def showArgs(self):
@@ -96,22 +96,30 @@ class CommandLine(object):
 ########################################## ##########################################################
 # ARGUMENTS VALIDATION
 
+    # TODO : return True if ok, or False if one argument doesn't match its rule
     def _validateArgs(self):
+        allArgsMatchRules = True
 #        self._objDebug.show(self._argDict)
         for argName in self._argDict:
             if self._isUselessCheckingArgument(argName):
                 continue
             if re.search('^' + self._argDict[argName]['rule'] + '$', str(self._argDict[argName]['value'])):
                 matchMessage = 'MATCHED :'
+                thisArgIsOk = True
             else:
                 matchMessage = 'NO MATCH :-('
-                self._objDebug.die(exitMessage = 'Invalid value "' + str(self._argDict[argName]['value']) \
-                    + '" for argument "' + argName + '".' \
-                    + ' The validation rule (RegExp) is :\n\n\t' + self._argDict[argName]['rule'] + '\n')
+                # TODO : just return 'false' and let the caller die
+#                self._objDebug.die(exitMessage = 'Invalid value "' + str(self._argDict[argName]['value']) \
+#                    + '" for argument "' + argName + '".' \
+#                    + ' The validation rule (RegExp) is :\n\n\t' + self._argDict[argName]['rule'] + '\n')
+                thisArgIsOk = False
 #            message = '(for "' + argName + '")' \
 #                + ' RULE : "' + self._argDict[argName]['rule'] \
 #                + '", VALUE : "' + str(self._argDict[argName]['value']) + '"'
 #            self._objDebug.show(matchMessage + ' ' + message)
+            allArgsMatchRules = allArgsMatchRules and thisArgIsOk
+
+        return allArgsMatchRules
 
 
     def _isUselessCheckingArgument(self, argName):

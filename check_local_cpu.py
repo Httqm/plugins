@@ -45,19 +45,15 @@ from modules import Utility
 myUtility   = Utility.Utility()
 myDebug     = Debug.Debug()
 
-
 myCommandLine = CommandLine.CommandLine(
     description = 'Check the local CPU usage.',
     objDebug    = myDebug,
     objUtility  = myUtility
     )
 
-
 myPlugin    = CheckLocalCpu.CheckLocalCpu(
     name        = 'CHECK LOCAL CPU',
-#    description = 'Check the local CPU usage.',
     objDebug    = myDebug,
-    objUtility  = myUtility
     )
 
 myCommandLine.declareArgument({
@@ -75,13 +71,12 @@ myCommandLine.declareArgument({
     'required'      : True,
     'default'       : None,
     'help'          : 'critical threshold in %%',
-    'rule'          : ''
+    'rule'          : '(\d+:?|:\d+|\d+:\d+)'
     })
-
 
 myCommandLine.declareArgumentDebug()
 myCommandLine.readArgs()
-#myPlugin.showArgs()
+#myCommandLine.showArgs()
 
 
 

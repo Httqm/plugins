@@ -13,10 +13,11 @@
 
 class NagiosPlugin(object):
 
-    def __init__(self, name, objDebug, objUtility):
+#    def __init__(self, name, objDebug, objUtility):
+    def __init__(self, name, objDebug):
         self._name          = name
         self._objDebug      = objDebug
-        self._objUtility    = objUtility
+#        self._objUtility    = objUtility
         self._exitCodes     = {
             'OK'        : 0,
             'WARNING'   : 1,
