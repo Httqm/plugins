@@ -117,9 +117,9 @@ class check_web(NagiosPlugin.NagiosPlugin):
             #TODO : host must be HTTP (no httpS) and have no leading "http://"
         except socket.timeout, e:
             self.exit(
-                status      = 'CRITICAL',
-                message     = 'Plugin timed out while opening connection.',
-                perfdata    = ''
+                exitStatus  = 'CRITICAL',
+                exitMessage = 'Plugin timed out while opening connection.',
+#                perfdata    = ''
                 )
 
 
@@ -138,11 +138,11 @@ class check_web(NagiosPlugin.NagiosPlugin):
                 {'Host': self._httpHostHeader}                  # headers
                 )
         except socket.timeout, e:
-            self.exit({
-                'status'    : 'CRITICAL',
-                'message'   : 'Plugin timed out while sending request.',
-                'perfdata'  : ''
-                })
+            self.exit(
+                exitStatus  = 'CRITICAL',
+                exitMessage = 'Plugin timed out while sending request.',
+#                'perfdata'  : ''
+                )
 
 
     def _getHttpResponse(self):
@@ -157,18 +157,21 @@ class check_web(NagiosPlugin.NagiosPlugin):
             self._httpStatusCode    = httpResponse.status
             self._responseHeaders   = httpResponse.getheaders()
         except socket.timeout, e:
-            self.exit({
-                'status'    : 'CRITICAL',
-                'message'   : 'Plugin timed out while waiting for response.',
-                'perfdata'  : ''
-                })
+            self.exit(
+                exitStatus  = 'CRITICAL',
+                exitMessage = 'Plugin timed out while waiting for response.',
+#                'perfdata'  : ''
+                )
 
 
     def _receivedTheExpectedHttpStatusCode(self):
-        receivedHttpStatusCode = self._httpStatusCode                       # this is an integer
-        expectedHttpStatusCode = int(self._objCommandLine.getArgValue('httpStatusCode'))    # this is passed as a string to the plugin from the command line
-        self._objDebug.show('Expected HTTP status code : ' + `expectedHttpStatusCode`)
-        self._objDebug.show('Received HTTP status code : ' + `receivedHttpStatusCode`)
+        receivedHttpStatusCode = self._httpStatusCode   # This is an integer
+
+        expectedHttpStatusCode = int(self._objCommandLine.getArgValue('httpStatusCode'))
+        # /!\ Command line arguments are read as strings
+
+        self._objDebug.show("Expected HTTP status code : " + `expectedHttpStatusCode` + "\n" \
+            + '              Received HTTP status code : ' + `receivedHttpStatusCode`)
         return True if receivedHttpStatusCode == expectedHttpStatusCode else False
 
 
@@ -191,18 +194,16 @@ class check_web(NagiosPlugin.NagiosPlugin):
 
 #        self._objDebug.show('Expected HTTP status code : ' + self.getArgValue('httpStatusCode'))
         if self._wasGivenAsPluginParameter('httpStatusCode') and not self._receivedTheExpectedHttpStatusCode():
-            self.exit({
-                'status'    : 'CRITICAL',
-                'message'   : 'Expected HTTP status code : ' + self._objCommandLine.getArgValue('httpStatusCode') +', received : ' + `self._httpStatusCode`,
-                'perfdata'  : '1234'
-                })
+            self.exit(
+                exitStatus  = 'CRITICAL',
+                exitMessage = 'Expected HTTP status code : ' + self._objCommandLine.getArgValue('httpStatusCode') +', received : ' + `self._httpStatusCode`,
+                )
 
         if self._wasGivenAsPluginParameter('matchString') and not self._matchStringWasFound():
-            self.exit({
-                'status'    : 'CRITICAL',
-                'message'   : 'Expected matchstring "' + self._objCommandLine.getArgValue('matchString') + '" not found',
-                'perfdata'  : '1234'
-                })
+            self.exit(
+                exitStatus  = 'CRITICAL',
+                exitMessage = 'Expected matchstring "' + self._objCommandLine.getArgValue('matchString') + '" not found',
+                )
 
 
 
@@ -210,7 +211,7 @@ class check_web(NagiosPlugin.NagiosPlugin):
 # /CLASSES
 # CONFIG
 ########################################## ##########################################################
-TIMEOUTSECONDS = 2
+TIMEOUTSECONDS = 0.002
 ########################################## ##########################################################
 # /CONFIG
 # main()
@@ -307,7 +308,7 @@ myCommandLine.declareArgument({
     'rule'          : '[\w\.\-]+'
     })
 
-#"""
+"""
 #TESTING
 myCommandLine.declareArgument({
     'shortOption'   : 'i',
@@ -339,7 +340,7 @@ myCommandLine.declareArgument({
 ,'orArgGroup':'testing'
     })
 #/TESTING
-#"""
+"""
 
 myCommandLine.declareArgumentDebug()
 myCommandLine.readArgs()
@@ -350,9 +351,9 @@ if not myCommandLine.checkArgsMatchRules():
         exitMessage = 'args dont match rules :-(')
 
 
-OptionalArgsAreOk, message = myCommandLine.checkOrArgGroups()
+optionalArgsAreOk, message = myCommandLine.checkOrArgGroups()
 
-if not OptionalArgsAreOk:
+if not optionalArgsAreOk:
     myPlugin.exit(
         exitStatus  = 'UNKNOWN',
         exitMessage = message)
