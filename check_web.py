@@ -181,9 +181,6 @@ class check_web(NagiosPlugin.NagiosPlugin):
         return True if self._objCommandLine.getArgValue(pluginParameterName) != None else False
 
 
-    def computeExitStatus():
-
-
     def checkResult(self):
         """
         The final result is computed in this order :
@@ -208,7 +205,11 @@ class check_web(NagiosPlugin.NagiosPlugin):
                 exitMessage = 'Expected matchstring "' + self._objCommandLine.getArgValue('matchString') + '" not found',
                 )
 
-
+        return self.computeExitStatus(
+            value               = self._durationMilliseconds,
+            warningThreshold    = self._objCommandLine.getArgValue('warning'),
+            criticalThreshold   = self._objCommandLine.getArgValue('critical')
+            )
 
 ########################################## ##########################################################
 # /CLASSES
@@ -378,9 +379,9 @@ result = myPlugin.getPage(
 #myDebug.show('Page length : '       + `len(result['pageContent'])`)
 #myDebug.show('Response headers : '  + `result['responseHeaders']`)
 
-myPlugin.checkResult()
+exitStatus = myPlugin.checkResult()
 
-
+myDebug.show('exit status = "' + exitStatus + '"')
 
 
 

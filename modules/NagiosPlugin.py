@@ -65,6 +65,15 @@ class NagiosPlugin(object):
         Since such ranges are not widely used, this implementation should be enough for most common cases.
         """
         # TODO : what about value == warn (or crit) threshold ?
+
+        # TODO : command line parameters may be converted to int earlier ?
+        value = int(value)
+        warningThreshold    = int(warningThreshold)
+        criticalThreshold   = int(criticalThreshold)
+        self._objDebug.show('VALUE = ' + str(value) + "\n              WARN  = " \
+            + str(warningThreshold) + "\n              CRIT  = " + str(criticalThreshold))
+
+
         if warningThreshold < criticalThreshold:
             if value < warningThreshold:
                 exitStatus = 'OK'
