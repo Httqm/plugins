@@ -37,7 +37,7 @@
 # NOTES :	1. (none so far ;-)
 #
 # KNOWN BUGS AND LIMITATIONS :
-#               1. 
+#               1.
 #
 ########################################## ##########################################################
 
@@ -91,11 +91,12 @@ class check_web(NagiosPlugin.NagiosPlugin):
         self._connectToHttpServer()
         self._sendHttpRequest()
         self._getHttpResponse()
+        self._durationMilliseconds = myTimer.stop() / 1000
         return {
             'httpStatusCode'        : self._httpStatusCode,
             'responseHeaders'       : self._responseHeaders,
             'pageContent'           : self._pageContent,
-            'durationMilliseconds'  : myTimer.stop() / 1000
+            'durationMilliseconds'  : self._durationMilliseconds
             }
 
 
@@ -118,8 +119,7 @@ class check_web(NagiosPlugin.NagiosPlugin):
         except socket.timeout, e:
             self.exit(
                 exitStatus  = 'CRITICAL',
-                exitMessage = 'Plugin timed out while opening connection.',
-#                perfdata    = ''
+                exitMessage = 'Plugin timed out (>' + str(TIMEOUTSECONDS) + 's) while opening HTTP connection.',
                 )
 
 
@@ -140,8 +140,7 @@ class check_web(NagiosPlugin.NagiosPlugin):
         except socket.timeout, e:
             self.exit(
                 exitStatus  = 'CRITICAL',
-                exitMessage = 'Plugin timed out while sending request.',
-#                'perfdata'  : ''
+                exitMessage = 'Plugin timed out (>' + str(TIMEOUTSECONDS) + 's) while sending HTTP request.',
                 )
 
 
@@ -159,8 +158,7 @@ class check_web(NagiosPlugin.NagiosPlugin):
         except socket.timeout, e:
             self.exit(
                 exitStatus  = 'CRITICAL',
-                exitMessage = 'Plugin timed out while waiting for response.',
-#                'perfdata'  : ''
+                exitMessage = 'Plugin timed out (>' + str(TIMEOUTSECONDS) + 's) while waiting for HTTP response.',
                 )
 
 
@@ -183,11 +181,16 @@ class check_web(NagiosPlugin.NagiosPlugin):
         return True if self._objCommandLine.getArgValue(pluginParameterName) != None else False
 
 
+    def computeExitStatus():
+
+
     def checkResult(self):
         """
         The final result is computed in this order :
-            1. timeout :                CRITICAL / UNKNOWN if this happens (TODO : make up your mind !). No timeout if we arrive here.
-            2. httpStatusCode (default : 200) :         CRITICAL if not received as expected. Otherwise continue
+            1. timeout :                CRITICAL / UNKNOWN if this happens (TODO : make up your mind !).
+                                        The plugin is designed so that it'll exit when the timeout occurs.
+                                        So, arriving here means 'no timeout'.
+            2. httpStatusCode :         CRITICAL if not received as expected. Otherwise continue
             3. matchString :            CRITICAL if not found. Otherwise continue
             4. warn/crit thresholds :   OK / WARNING / CRITICAL based on values.
         """
@@ -211,7 +214,7 @@ class check_web(NagiosPlugin.NagiosPlugin):
 # /CLASSES
 # CONFIG
 ########################################## ##########################################################
-TIMEOUTSECONDS = 0.002
+TIMEOUTSECONDS = 0.2
 ########################################## ##########################################################
 # /CONFIG
 # main()
@@ -223,7 +226,7 @@ myDebug     = Debug.Debug()
 
 myCommandLine   = CommandLine.CommandLine(
     description = 'Check a web page',
-    objDebug    = myDebug, 
+    objDebug    = myDebug,
     objUtility  = myUtility
     )
 

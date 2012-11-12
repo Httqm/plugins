@@ -10,6 +10,9 @@
 #
 ########################################## ##########################################################
 
+# TODO : define rules such as w < c, or w > c, and check them
+
+
 
 import argparse
 import re
