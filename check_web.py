@@ -28,11 +28,11 @@
 # COMMAND LINE :    (the scissors 8< mean the command continues on the next line)
 #   SEARCHING MATCHSTRING ON WEB PAGE :
 #       ./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" 8<
-#           --httpMethod="GET" --httpStatusCode 200 --matchString="kate" -w 2500 -c 4000 --debug
+#           --httpMethod="GET" --httpStatusCode=200 --matchString="kate" -w 2500 -c 4000 --debug
 #
 #   PLAYING WITH EXPECTED HTTP STATUS CODES :
 #       ./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="origin-www.voici.fr" 8<
-#           --httpMethod="GET" --httpStatusCode 301 --matchString="bla" -w 2500 -c 4000 --debug
+#           --httpMethod="GET" --httpStatusCode=301 --matchString="bla" -w 2500 -c 4000 --debug
 #
 # NOTES :	1. (none so far ;-)
 #
@@ -173,15 +173,11 @@ class check_web(NagiosPlugin.NagiosPlugin):
 
 
     def _matchStringWasFound(self):
-#        self._objDebug.show('MatchString : ' + self.getArgValue('matchString'))
-#        self._objDebug.show('Received Content : ' + self._pageContent) # <== worth displaying ? this is the full page :-/
         return True if re.search(self._objCommandLine.getArgValue('matchString'), self._pageContent) else False
 
 
-    def _wasGivenAsPluginParameter(self, params):
-#        self._objDebug.show('parameter value : ' + self.getArgValue(params['pluginParameterName']))
-#        return True if self.getArgValue(params['pluginParameterName']) != None else False
-        return True if self._objCommandLine.getArgValue(params['pluginParameterName']) != None else False
+    def _wasGivenAsPluginParameter(self, pluginParameterName):
+        return True if self._objCommandLine.getArgValue(pluginParameterName) != None else False
 
 
     def checkResult(self):
@@ -194,14 +190,14 @@ class check_web(NagiosPlugin.NagiosPlugin):
         """
 
 #        self._objDebug.show('Expected HTTP status code : ' + self.getArgValue('httpStatusCode'))
-        if self._wasGivenAsPluginParameter({'pluginParameterName' : 'httpStatusCode'}) and not self._receivedTheExpectedHttpStatusCode():
+        if self._wasGivenAsPluginParameter('httpStatusCode') and not self._receivedTheExpectedHttpStatusCode():
             self.exit({
                 'status'    : 'CRITICAL',
                 'message'   : 'Expected HTTP status code : ' + self._objCommandLine.getArgValue('httpStatusCode') +', received : ' + `self._httpStatusCode`,
                 'perfdata'  : '1234'
                 })
 
-        if self._wasGivenAsPluginParameter({'pluginParameterName' : 'matchString'}) and not self._matchStringWasFound():
+        if self._wasGivenAsPluginParameter('matchString') and not self._matchStringWasFound():
             self.exit({
                 'status'    : 'CRITICAL',
                 'message'   : 'Expected matchstring "' + self._objCommandLine.getArgValue('matchString') + '" not found',
@@ -320,7 +316,7 @@ myCommandLine.declareArgument({
     'default'       : None,
     'help'          : '',
     'rule'          : ''
-,'orArgGroup':'testing'
+#,'orArgGroup':'testing'
     })
 
 myCommandLine.declareArgument({
@@ -347,10 +343,25 @@ myCommandLine.declareArgument({
 
 myCommandLine.declareArgumentDebug()
 myCommandLine.readArgs()
+
+if not myCommandLine.checkArgsMatchRules():
+    myPlugin.exit(
+        exitStatus  = 'UNKNOWN',
+        exitMessage = 'args dont match rules :-(')
+
+
+a, b = myCommandLine.checkOrArgGroups()    # TODO : find more descriptive name
+
+if not a:
+    myPlugin.exit(
+        exitStatus  = 'UNKNOWN',
+        exitMessage = b)
+
+
 myCommandLine.showArgs()
 
 
-myUrl       = Url.Url(full=myCommandLine.getArgValue('url'))
+myUrl = Url.Url(full=myCommandLine.getArgValue('url'))
 
 
 result = myPlugin.getPage(

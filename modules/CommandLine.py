@@ -58,8 +58,7 @@ class CommandLine(object):
         for argName in self._argDict:
             self._argDict[argName]['value'] = getattr(self._args, argName)
         self._detectDebugValue()
-        self._checkOrArgGroups()
-#        self._validateArgs()    # TODO : exit if false
+#        self._checkOrArgGroups()    # TODO : not the right place to do this. FIX IT!
 
 
     def showArgs(self):
@@ -132,7 +131,7 @@ class CommandLine(object):
 ########################################## ##########################################################
 # THE 'ORARGGROUPS'
 
-    def _getOrArgGroup(self, argData):
+    def _getOrArgGroup(self, argData):  # TODO : stop using dicts as arguments !!!
         """
         'Or arg. groups' are groups of optional arguments where AT LEAST 1 argument MUST BE provided.
         """
@@ -142,9 +141,9 @@ class CommandLine(object):
             return None
 
 
-    def _checkOrArgGroups(self):
+    def checkOrArgGroups(self):
         self._getOrArgGroupsData()
-        self._alertOrArgGroupsMissingArgs()
+        return self._alertOrArgGroupsMissingArgs()
 
 
     def _getOrArgGroupsData(self):
@@ -170,9 +169,10 @@ class CommandLine(object):
         orArgGroupsAreOkay  = True
         message             = ''
         for groupName in self._orArgGroupsData:
-            print groupName + ' ' + str(self._orArgGroupsData[groupName]['status']) + ' ' + str(self._orArgGroupsData[groupName]['arguments'])
+#            self._objDebug.show(groupName + ' ' + str(self._orArgGroupsData[groupName]['status']) + ' ' + str(self._orArgGroupsData[groupName]['arguments']))
             orArgGroupsAreOkay = orArgGroupsAreOkay and self._orArgGroupsData[groupName]['status']
             if not self._orArgGroupsData[groupName]['status']:
-                message += 'One of these arguments is missing : ' + str(self._orArgGroupsData[groupName]['arguments']) + '\n'
-        print message
-        # TODO : do a 'nagios exit'
+                message += 'One of these command-line arguments is missing : ' \
+                    + str(self._orArgGroupsData[groupName]['arguments']) + '\n'
+#        self._objDebug.show(str(orArgGroupsAreOkay) + ', "' + message + '"')
+        return orArgGroupsAreOkay, message
