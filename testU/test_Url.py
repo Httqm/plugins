@@ -11,7 +11,7 @@ os.sys.path.insert(0,parentdir)
 ########################################## ##########################################################
 
 
-import modules.url
+import modules.Url
 
 class test_Url(unittest.TestCase):
 
@@ -21,7 +21,7 @@ class test_Url(unittest.TestCase):
         should return the full URL.
         """
         testUrl = 'http://www.google.be'
-        obj     = modules.url.Url(full=testUrl)
+        obj     = modules.Url.Url(full=testUrl)
         self.assertEqual(obj.getFullUrl(), testUrl)
 
 
@@ -31,7 +31,7 @@ class test_Url(unittest.TestCase):
         should return its 'HTTP query' part.
         """
         testUrl     = 'http://www.google.be'
-        obj         = modules.url.Url(full=testUrl)
+        obj         = modules.Url.Url(full=testUrl)
         self.assertEqual(obj.getQuery(), '/')
 
 
@@ -42,7 +42,7 @@ class test_Url(unittest.TestCase):
         """
         testQuery   = '/index.php'
         testUrl     = 'http://www.bla.com' + testQuery
-        obj         = modules.url.Url(full=testUrl)
+        obj         = modules.Url.Url(full=testUrl)
         self.assertEqual(obj.getQuery(), testQuery)
 
 
@@ -53,7 +53,7 @@ class test_Url(unittest.TestCase):
         """
         testHostName    = 'www.thisisnot.net'
         testUrl         = 'http://' + testHostName + '/myPage.php'
-        obj             = modules.url.Url(full=testUrl)
+        obj             = modules.Url.Url(full=testUrl)
         self.assertEqual(obj.getHostName(), testHostName)
 
 
@@ -63,7 +63,7 @@ class test_Url(unittest.TestCase):
         should return the full URL.
         """
         testUrl         = 'thisisawrongurl.com'
-        obj             = modules.url.Url(full=testUrl)
+        obj             = modules.Url.Url(full=testUrl)
         self.assertEqual(obj.getHostName(), testUrl)
 
 
