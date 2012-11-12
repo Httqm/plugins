@@ -56,20 +56,21 @@
 import httplib  # http://docs.python.org/library/httplib.htm
 import re
 
-from modules import debug
-from modules import nagiosPlugin
-from modules import url
-from modules import utility
+from modules import CommandLine
+from modules import Debug
+from modules import NagiosPlugin
+from modules import Url
+from modules import Utility
 
 
 ########################################## ##########################################################
 # CLASSES
 ########################################## ##########################################################
 
-class check_web(nagiosPlugin.NagiosPlugin):
+class check_web(NagiosPlugin.NagiosPlugin):
 
 
-    def getPage(self, objUrl):
+    def getPage(self, objCommandLine, objUrl):
 
         from modules import timer
 
@@ -81,7 +82,7 @@ class check_web(nagiosPlugin.NagiosPlugin):
         # source : http://bytes.com/topic/python/answers/22953-how-catch-socket-timeout#post84566
 
         self._objUrl = objUrl
-#        self._objDebug.show('URL = ' + self.getArgValue('url'))
+        self._objCommandLine = objCommandLine
 
         self._getHttpHostHeader()
 
@@ -99,11 +100,10 @@ class check_web(nagiosPlugin.NagiosPlugin):
 
 
     def _getHttpHostHeader(self):
-        if self.getArgValue('httpHostHeader'):
-            self._httpHostHeader = self.getArgValue('httpHostHeader')
+        if self._objCommandLine.getArgValue('httpHostHeader'):
+            self._httpHostHeader = self._objCommandLine.getArgValue('httpHostHeader')
         else:
             self._httpHostHeader = self._objUrl.getHostName()
-#        self._objDebug.show('HTTP host header : ' + self._httpHostHeader)
 
 
     def _connectToHttpServer(self):
@@ -112,7 +112,7 @@ class check_web(nagiosPlugin.NagiosPlugin):
         try:
             self._httpConnection = httplib.HTTPConnection(
                 self._objUrl.getHostName(),
-                self.getArgValue('httpPort')
+                self._objCommandLine.getArgValue('httpPort')
                 )
             #TODO : host must be HTTP (no httpS) and have no leading "http://"
         except socket.timeout, e:
@@ -130,10 +130,9 @@ class check_web(nagiosPlugin.NagiosPlugin):
         httpConnection.request('GET', '/', {}, {'Host': args.httpHostHeader})
         """
         import socket   # required to track the socket.timeout exception
-#        self._objDebug.show('URL query = ' + self._objUrl.getQuery())
         try:
             self._httpConnection.request(
-                self.getArgValue('httpMethod'),                 # method
+                self._objCommandLine.getArgValue('httpMethod'), # method
                 self._objUrl.getQuery(),                        # request
                 {},                                             # body. Used only for POST (?)
                 {'Host': self._httpHostHeader}                  # headers
@@ -167,7 +166,7 @@ class check_web(nagiosPlugin.NagiosPlugin):
 
     def _receivedTheExpectedHttpStatusCode(self):
         receivedHttpStatusCode = self._httpStatusCode                       # this is an integer
-        expectedHttpStatusCode = int(self.getArgValue('httpStatusCode'))    # this is passed as a string to the plugin from the command line
+        expectedHttpStatusCode = int(self._objCommandLine.getArgValue('httpStatusCode'))    # this is passed as a string to the plugin from the command line
         self._objDebug.show('Expected HTTP status code : ' + `expectedHttpStatusCode`)
         self._objDebug.show('Received HTTP status code : ' + `receivedHttpStatusCode`)
         return True if receivedHttpStatusCode == expectedHttpStatusCode else False
@@ -176,12 +175,13 @@ class check_web(nagiosPlugin.NagiosPlugin):
     def _matchStringWasFound(self):
 #        self._objDebug.show('MatchString : ' + self.getArgValue('matchString'))
 #        self._objDebug.show('Received Content : ' + self._pageContent) # <== worth displaying ? this is the full page :-/
-        return True if re.search(self.getArgValue('matchString'), self._pageContent) else False
+        return True if re.search(self._objCommandLine.getArgValue('matchString'), self._pageContent) else False
 
 
     def _wasGivenAsPluginParameter(self, params):
 #        self._objDebug.show('parameter value : ' + self.getArgValue(params['pluginParameterName']))
-        return True if self.getArgValue(params['pluginParameterName']) != None else False
+#        return True if self.getArgValue(params['pluginParameterName']) != None else False
+        return True if self._objCommandLine.getArgValue(params['pluginParameterName']) != None else False
 
 
     def checkResult(self):
@@ -197,14 +197,14 @@ class check_web(nagiosPlugin.NagiosPlugin):
         if self._wasGivenAsPluginParameter({'pluginParameterName' : 'httpStatusCode'}) and not self._receivedTheExpectedHttpStatusCode():
             self.exit({
                 'status'    : 'CRITICAL',
-                'message'   : 'Expected HTTP status code : ' + self.getArgValue('httpStatusCode') +', received : ' + `self._httpStatusCode`,
+                'message'   : 'Expected HTTP status code : ' + self._objCommandLine.getArgValue('httpStatusCode') +', received : ' + `self._httpStatusCode`,
                 'perfdata'  : '1234'
                 })
 
         if self._wasGivenAsPluginParameter({'pluginParameterName' : 'matchString'}) and not self._matchStringWasFound():
             self.exit({
                 'status'    : 'CRITICAL',
-                'message'   : 'Expected matchstring "' + self.getArgValue('matchString') + '" not found',
+                'message'   : 'Expected matchstring "' + self._objCommandLine.getArgValue('matchString') + '" not found',
                 'perfdata'  : '1234'
                 })
 
@@ -221,17 +221,21 @@ TIMEOUTSECONDS = 2
 ########################################## ##########################################################
 
 
-myUtility   = utility.Utility()
-myDebug     = debug.Debug()
+myUtility   = Utility.Utility()
+myDebug     = Debug.Debug()
 
+myCommandLine   = CommandLine.CommandLine(
+    description = 'Check a web page',
+    objDebug    = myDebug, 
+    objUtility  = myUtility
+    )
 
 myPlugin    = check_web(
     name        = 'CHECK WEB',
     objDebug    = myDebug,
-    objUtility  = myUtility
     )
 
-myPlugin.declareArgument({
+myCommandLine.declareArgument({
     'shortOption'   : 'u',
     'longOption'    : 'url',
     'required'      : True,
@@ -240,7 +244,7 @@ myPlugin.declareArgument({
     'rule'          : 'http://[^:]+'
     })
 
-myPlugin.declareArgument({
+myCommandLine.declareArgument({
     'shortOption'   : 'p',
     'longOption'    : 'httpPort',
     'required'      : False,
@@ -250,7 +254,7 @@ myPlugin.declareArgument({
     'orArgGroup'    : 'httpMethod_OR_httpPort' # TODO : remove this after testing
     })
 
-myPlugin.declareArgument({
+myCommandLine.declareArgument({
     'shortOption'   : 'M',
     'longOption'    : 'httpMethod',
     'required'      : False,
@@ -260,7 +264,7 @@ myPlugin.declareArgument({
     'orArgGroup'    : 'httpMethod_OR_httpPort' # TODO : remove this after testing
     })
 
-myPlugin.declareArgument({
+myCommandLine.declareArgument({
     'shortOption'   : 's',
     'longOption'    : 'httpStatusCode',
     'required'      : False,
@@ -270,7 +274,7 @@ myPlugin.declareArgument({
     'orArgGroup'    : 'httpStatusCode_OR_matchString'
     })
 
-myPlugin.declareArgument({
+myCommandLine.declareArgument({
     'shortOption'   : 'm',
     'longOption'    : 'matchString',
     'required'      : False,
@@ -280,7 +284,7 @@ myPlugin.declareArgument({
     'orArgGroup'    : 'httpStatusCode_OR_matchString'
     })
 
-myPlugin.declareArgument({
+myCommandLine.declareArgument({
     'shortOption'   : 'w',
     'longOption'    : 'warning',
     'required'      : True,
@@ -289,7 +293,7 @@ myPlugin.declareArgument({
     'rule'          : '(\d+:?|:\d+|\d+:\d+)'
     })
 
-myPlugin.declareArgument({
+myCommandLine.declareArgument({
     'shortOption'   : 'c',
     'longOption'    : 'critical',
     'required'      : True,
@@ -298,7 +302,7 @@ myPlugin.declareArgument({
     'rule'          : ''
     })
 
-myPlugin.declareArgument({
+myCommandLine.declareArgument({
     'shortOption'   : 'H',
     'longOption'    : 'httpHostHeader',
     'required'      : False,
@@ -309,7 +313,7 @@ myPlugin.declareArgument({
 
 #"""
 #TESTING
-myPlugin.declareArgument({
+myCommandLine.declareArgument({
     'shortOption'   : 'i',
     'longOption'    : 'iii',
     'required'      : False,
@@ -319,7 +323,7 @@ myPlugin.declareArgument({
 ,'orArgGroup':'testing'
     })
 
-myPlugin.declareArgument({
+myCommandLine.declareArgument({
     'shortOption'   : 'j',
     'longOption'    : 'jjj',
     'required'      : False,
@@ -329,7 +333,7 @@ myPlugin.declareArgument({
 ,'orArgGroup':'testing'
     })
 
-myPlugin.declareArgument({
+myCommandLine.declareArgument({
     'shortOption'   : 'k',
     'longOption'    : 'kkk',
     'required'      : False,
@@ -341,15 +345,18 @@ myPlugin.declareArgument({
 #/TESTING
 #"""
 
-myPlugin.declareArgumentDebug()
-myPlugin.readArgs()
-myPlugin.showArgs()
+myCommandLine.declareArgumentDebug()
+myCommandLine.readArgs()
+myCommandLine.showArgs()
 
 
-myUrl       = url.Url(full=myPlugin.getArgValue('url'))
+myUrl       = Url.Url(full=myCommandLine.getArgValue('url'))
 
 
-result = myPlugin.getPage(objUrl=myUrl)
+result = myPlugin.getPage(
+    objCommandLine  = myCommandLine,
+    objUrl          = myUrl
+    )
 
 #myDebug.show('HTTP status code : '  + `result['httpStatusCode']`)
 #myDebug.show('Duration : '          + `result['durationMilliseconds']` + 'ms')

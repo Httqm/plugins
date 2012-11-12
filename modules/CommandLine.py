@@ -33,7 +33,7 @@ class CommandLine(object):
 
 
 ########################################## ##########################################################
-# PUBLIC METHODS
+#
 
     def declareArgument(self, argData):
         """ See : http://docs.python.org/library/argparse.html#the-add-argument-method """

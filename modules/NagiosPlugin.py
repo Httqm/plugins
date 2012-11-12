@@ -13,11 +13,9 @@
 
 class NagiosPlugin(object):
 
-#    def __init__(self, name, objDebug, objUtility):
     def __init__(self, name, objDebug):
         self._name          = name
         self._objDebug      = objDebug
-#        self._objUtility    = objUtility
         self._exitCodes     = {
             'OK'        : 0,
             'WARNING'   : 1,
@@ -37,12 +35,6 @@ class NagiosPlugin(object):
         self._perfData += label + '=' + str(value) + uom + ';' \
             + str(warn) + ';' + str(crit) + ';' + str(min) + ';' + str(max) + ' '
         self._objDebug.show('PERFDATA : ' + self._perfData)
-
-
-#    def exit(self):
-#        self._mySys = __import__('sys')
-#        print self._name + ' ' + self._exitStatus + '|' + self._perfData
-#        self._mySys.exit(self._exitCode)
 
 
     def exit(self, exitStatus, exitMessage=''):
