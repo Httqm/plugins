@@ -44,3 +44,54 @@ class NagiosPlugin(object):
             outputMessage += '|' + self._perfData
         print outputMessage
         self._mySys.exit(self._exitCodes[exitStatus])
+
+
+    def computeExitStatus(self, value, warningThreshold, criticalThreshold):
+        """
+        Depending on the metric (HDD free / used space), the warn / crit threshold may be inverted :
+
+        Checking used space :
+
+        -oo <--------------+-------------------+---------------------> +oo
+                  ok       W      warning      C       critical
+
+        Checking free space :
+
+        -oo <--------------+-------------------+---------------------> +oo
+                critical   C      warning      W           ok
+
+
+        NB : this method doesn't meet the Nagios plugin specification as for warn / crit ranges.
+        Since such ranges are not widely used, this implementation should be enough for most common cases.
+        """
+        # TODO : what about value == warn (or crit) threshold ?
+        if warningThreshold < criticalThreshold:
+            if value < warningThreshold:
+                exitStatus = 'OK'
+            elif value > criticalThreshold:
+                exitStatus = 'CRITICAL'
+            else:
+                exitStatus = 'WARNING'
+        else:
+            if value > warningThreshold:
+                exitStatus = 'OK'
+            elif value < criticalThreshold:
+                exitStatus = 'CRITICAL'
+            else:
+                exitStatus = 'WARNING'
+
+        return exitStatus
+
+"""
+TODO : add a method to determine the exit status based on
+ - the measured value
+ - warn value
+ - crit value
+
+This should be smart enough to return the right status in situations such as :
+
+HDD free space. warn = 20%. OK if value is > warn
+HDD used space. warn = 80%. OK if value is < warn
+
+Consider the Nagios plugin ranges specs ;-)
+"""
