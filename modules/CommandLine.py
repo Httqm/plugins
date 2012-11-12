@@ -143,7 +143,7 @@ class CommandLine(object):
 
     def checkOrArgGroups(self):
         self._getOrArgGroupsData()
-        return self._alertOrArgGroupsMissingArgs()
+        return self._detectOrArgGroupsMissingArgs()
 
 
     def _getOrArgGroupsData(self):
@@ -164,7 +164,7 @@ class CommandLine(object):
         self._orArgGroupsData = groups
 
 
-    def _alertOrArgGroupsMissingArgs(self):
+    def _detectOrArgGroupsMissingArgs(self):
 #        self._objDebug.show(self._orArgGroupsData)
         orArgGroupsAreOkay  = True
         message             = ''

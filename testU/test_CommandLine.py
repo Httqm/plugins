@@ -41,12 +41,10 @@ class test_CommandLine(unittest.TestCase):
         myCommandLine._argDict['integer1'] = {
             'value'         : integer1Value,
             'rule'          : integerRule,
-            'orArgGroup'    : 'aaa'
             }
         myCommandLine._argDict['integer2'] = {
             'value'         : integer2Value,
             'rule'          : integerRule,
-            'orArgGroup'    : 'aaa'
             }
 
         self.assertEqual(myCommandLine.checkArgsMatchRules(), True)
@@ -73,12 +71,10 @@ class test_CommandLine(unittest.TestCase):
         myCommandLine._argDict['integer1'] = {
             'value'         : integer1Value,
             'rule'          : integerRule,
-            'orArgGroup'    : 'aaa'
             }
         myCommandLine._argDict['integer2'] = {
             'value'         : integer2Value,
             'rule'          : integerRule,
-            'orArgGroup'    : 'aaa'
             }
 
         self.assertEqual(myCommandLine.checkArgsMatchRules(), False)
@@ -105,15 +101,100 @@ class test_CommandLine(unittest.TestCase):
         myCommandLine._argDict['integer1'] = {
             'value'         : integer1Value,
             'rule'          : integerRule,
-            'orArgGroup'    : 'aaa'
             }
         myCommandLine._argDict['integer2'] = {
             'value'         : integer2Value,
             'rule'          : integerRule,
-            'orArgGroup'    : 'aaa'
             }
 
         self.assertEqual(myCommandLine.checkArgsMatchRules(), False)
+
+
+    def test1_checkOrArgGroups(self):
+        """
+        Given 2 arguments while expecting 2 'orArg' arguments in a single group,
+        Should return 'True' and an empty message
+        """
+        myUtility       = Utility.Utility()
+        myDebug         = Debug.Debug()
+
+        myCommandLine   = CommandLine.CommandLine(
+            description = 'Blah blah blah.',
+            objDebug    = myDebug,
+            objUtility  = myUtility
+            )
+
+        myCommandLine._argDict['arg1'] = {
+            'value'         : 'blah',
+            'orArgGroup'    : 'group1'
+            }
+
+        myCommandLine._argDict['arg2'] = {
+            'value'         : 'meh',
+            'orArgGroup'    : 'group1'
+            }
+
+        orArgsAreOk, message = myCommandLine.checkOrArgGroups()
+        self.assertTrue(orArgsAreOk)
+        self.assertEqual(message, '')
+
+
+    def test2_checkOrArgGroups(self):
+        """
+        Given 1 argument while expecting 2 'orArg' arguments in a single group,
+        Should return 'True' and an empty message
+        """
+        myUtility       = Utility.Utility()
+        myDebug         = Debug.Debug()
+
+        myCommandLine   = CommandLine.CommandLine(
+            description = 'Blah blah blah.',
+            objDebug    = myDebug,
+            objUtility  = myUtility
+            )
+
+        myCommandLine._argDict['arg1'] = {
+            'value'         : 'blah',
+            'orArgGroup'    : 'group1'
+            }
+
+        myCommandLine._argDict['arg2'] = {
+            'value'         : None,
+            'orArgGroup'    : 'group1'
+            }
+
+        orArgsAreOk, message = myCommandLine.checkOrArgGroups()
+        self.assertTrue(orArgsAreOk)
+        self.assertEqual(message, '')
+
+
+    def test3_checkOrArgGroups(self):
+        """
+        Given no argument while expecting 2 'orArg' arguments in a single group,
+        Should return 'False' and an error message
+        """
+        myUtility       = Utility.Utility()
+        myDebug         = Debug.Debug()
+
+        myCommandLine   = CommandLine.CommandLine(
+            description = 'Blah blah blah.',
+            objDebug    = myDebug,
+            objUtility  = myUtility
+            )
+
+        myCommandLine._argDict['arg1'] = {
+            'value'         : None,
+            'orArgGroup'    : 'group1'
+            }
+
+        myCommandLine._argDict['arg2'] = {
+            'value'         : None,
+            'orArgGroup'    : 'group1'
+            }
+
+        orArgsAreOk, message = myCommandLine.checkOrArgGroups()
+        self.assertFalse(orArgsAreOk)
+        self.assertNotEqual(message, '')
 
 
 # uncomment this to run this unit test manually

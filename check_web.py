@@ -350,12 +350,12 @@ if not myCommandLine.checkArgsMatchRules():
         exitMessage = 'args dont match rules :-(')
 
 
-a, b = myCommandLine.checkOrArgGroups()    # TODO : find more descriptive name
+OptionalArgsAreOk, message = myCommandLine.checkOrArgGroups()
 
-if not a:
+if not OptionalArgsAreOk:
     myPlugin.exit(
         exitStatus  = 'UNKNOWN',
-        exitMessage = b)
+        exitMessage = message)
 
 
 myCommandLine.showArgs()
