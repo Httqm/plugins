@@ -11,16 +11,20 @@
 ########################################## ##########################################################
 
 
+okNoWarnString = 'NOWARN (ok)'
+
+
 class NagiosPlugin(object):
 
     def __init__(self, name, objDebug):
         self._name          = name
         self._objDebug      = objDebug
         self._exitCodes     = {
-            'OK'        : 0,
-            'WARNING'   : 1,
-            'CRITICAL'  : 2,
-            'UNKNOWN'   : 3
+            'OK'            : 0,
+            okNoWarnString  : 0,
+            'WARNING'       : 1,
+            'CRITICAL'      : 2,
+            'UNKNOWN'       : 3
             }
 
         self._perfData  = ''
@@ -74,19 +78,26 @@ class NagiosPlugin(object):
             + str(warningThreshold) + "\n              CRIT  = " + str(criticalThreshold))
 
 
-        if warningThreshold < criticalThreshold:
-            if value < warningThreshold:
-                exitStatus = 'OK'
-            elif value > criticalThreshold:
-                exitStatus = 'CRITICAL'
-            else:
-                exitStatus = 'WARNING'
+
+        if warningThreshold == 0 and criticalThreshold == 0:
+            exitStatus = okNoWarnString
         else:
-            if value > warningThreshold:
-                exitStatus = 'OK'
-            elif value < criticalThreshold:
-                exitStatus = 'CRITICAL'
+            if warningThreshold < criticalThreshold:
+                if value < warningThreshold:
+                    exitStatus = 'OK'
+                elif value > criticalThreshold:
+                    exitStatus = 'CRITICAL'
+                else:
+                    exitStatus = 'WARNING'
             else:
-                exitStatus = 'WARNING'
+                if value > warningThreshold:
+                    exitStatus = 'OK'
+                elif value < criticalThreshold:
+                    exitStatus = 'CRITICAL'
+                else:
+                    exitStatus = 'WARNING'
+
+
+
 
         return exitStatus

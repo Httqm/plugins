@@ -23,16 +23,16 @@
 #                - or both
 #                - with or without using warn / crit duration thresholds on the page response time
 #
-# VERSION :     20121023
+# VERSION :     20121204
 #
 # COMMAND LINE :    (the scissors 8< mean the command continues on the next line)
 #   SEARCHING MATCHSTRING ON WEB PAGE :
 #       ./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" 8<
 #           --httpMethod="GET" --httpStatusCode=200 --matchString="kate" -w 2500 -c 4000 --debug
 #
-#   PLAYING WITH EXPECTED HTTP STATUS CODES :
+#   PLAYING WITH EXPECTED HTTP STATUS CODES (no matchstring) :
 #       ./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="origin-www.voici.fr" 8<
-#           --httpMethod="GET" --httpStatusCode=301 --matchString="bla" -w 2500 -c 4000 --debug
+#           --httpMethod="GET" --httpStatusCode=301  -w 2500 -c 4000 --debug
 #
 # NOTES :	1. (none so far ;-)
 #
@@ -43,16 +43,11 @@
 
 
 # TODO :
-# - handle case when no matchstring is provided :
-#       1. no error when re.searching as it's empty
-#       2. if no string is provided, it means we don't care about strings matching, just HTTP codes (?)
-# ex: ./check_web.py --url="http://origin-www.voici.fr" --httpMethod="GET" --httpStatusCode 301 -w 2500 -c 4000 --debug
-#
-# prepare case matrix for different check types / results / exits
+# show status code in output string / perfdata (?)
+# handle cases like w<c, w>c, w==c when getting args (?)
 # /TODO
 
 
-#import urllib  # http://docs.python.org/library/urllib.html?highlight=urllib
 import httplib  # http://docs.python.org/library/httplib.htm
 import re
 
@@ -215,7 +210,7 @@ class check_web(NagiosPlugin.NagiosPlugin):
 # /CLASSES
 # CONFIG
 ########################################## ##########################################################
-TIMEOUTSECONDS  = 0.2
+TIMEOUTSECONDS  = 0.5
 PLUGINLABEL     = 'CHECK WEB'
 ########################################## ##########################################################
 # /CONFIG
