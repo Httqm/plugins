@@ -27,7 +27,7 @@ class NagiosPlugin(object):
         self._decimalPlaces = 3
 
 
-    def addPerfData(self, label, value, uom, warn, crit, min, max):
+    def addPerfData(self, label, value, uom, warn, crit, min=None, max=None):
         """
         Perfdata :  http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN201
         Format :    'label'=value[UOM];[warn];[crit];[min];[max]
@@ -90,17 +90,3 @@ class NagiosPlugin(object):
                 exitStatus = 'WARNING'
 
         return exitStatus
-
-"""
-TODO : add a method to determine the exit status based on
- - the measured value
- - warn value
- - crit value
-
-This should be smart enough to return the right status in situations such as :
-
-HDD free space. warn = 20%. OK if value is > warn
-HDD used space. warn = 80%. OK if value is < warn
-
-Consider the Nagios plugin ranges specs ;-)
-"""

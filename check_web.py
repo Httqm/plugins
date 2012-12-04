@@ -215,7 +215,8 @@ class check_web(NagiosPlugin.NagiosPlugin):
 # /CLASSES
 # CONFIG
 ########################################## ##########################################################
-TIMEOUTSECONDS = 0.2
+TIMEOUTSECONDS  = 0.2
+PLUGINLABEL     = 'CHECK WEB'
 ########################################## ##########################################################
 # /CONFIG
 # main()
@@ -232,7 +233,7 @@ myCommandLine   = CommandLine.CommandLine(
     )
 
 myPlugin    = check_web(
-    name        = 'CHECK WEB',
+    name        = PLUGINLABEL,
     objDebug    = myDebug,
     )
 
@@ -241,7 +242,7 @@ myCommandLine.declareArgument({
     'longOption'    : 'url',
     'required'      : True,
     'default'       : None,
-    'help'          : 'URL of page to check ()with leading "http://"). To specify a port number, use the "httpPort" directive.',
+    'help'          : 'URL of page to check (with leading "http://"). To specify a port number, use the "httpPort" directive.',
     'rule'          : 'http://[^:]+'
     })
 
@@ -384,34 +385,15 @@ exitStatus = myPlugin.checkResult()
 myDebug.show('exit status = "' + exitStatus + '"')
 
 
+myPlugin.addPerfData(
+    label   = PLUGINLABEL,
+    value   = result['durationMilliseconds'],
+    uom     = 'ms',
+    warn    = myCommandLine.getArgValue('warning'),
+    crit    = myCommandLine.getArgValue('critical')
+    )
 
-# enable myPlugin timeout + interrupt. If timeout, exit as nagios status code "unknown" + exit message
-
-# init timer
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# get result + HTTP exit code
-
-# stop timer
-#print myTimer.stop()
-
-# if HTTP exit code is "success", search matchstring
-# otherwise, exit with error message + nagios status code
-
-# if matchstring found, report success (nagios status code) + perfdata
-# otherwise, report failure + nagios status code + perfdata
+myPlugin.exit(exitStatus)
 
 
 
