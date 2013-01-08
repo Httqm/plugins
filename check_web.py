@@ -30,6 +30,9 @@
 #       ./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="www.voici.fr" 8<
 #           --httpMethod="GET" --httpStatusCode=200 --matchString="kate" -w 2500 -c 4000 --debug
 #
+#       ./check_web.py --url="http://origin-www.gala.fr/l_actu/news_de_stars/deborah_francois_une_revelation_populaire_276187?$RANDOM" 8<
+#            --httpHostHeader="www.gala.fr" --httpMethod="GET" --httpStatusCode=200 --matchString="sans fausse note" -w 2500 -c 4000 --debug
+
 #   PLAYING WITH EXPECTED HTTP STATUS CODES (no matchstring) :
 #       ./check_web.py --url="http://origin-www.voici.fr" --httpHostHeader="origin-www.voici.fr" 8<
 #           --httpMethod="GET" --httpStatusCode=301  -w 2500 -c 4000 --debug
@@ -285,9 +288,12 @@ myCommandLine.declareArgument({
     'shortOption'   : 'w',
     'longOption'    : 'warning',
     'required'      : True,
-    'default'       : '',
+    'default'       : None,
     'help'          : 'warning threshold in ms',
     'rule'          : '(\d+:?|:\d+|\d+:\d+)'
+# TODO : add param here usch as :
+#    'lessThanCrit' : True
+# so that we can check warn vs crit
     })
 
 myCommandLine.declareArgument({
