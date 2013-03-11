@@ -8,8 +8,8 @@ from pysnmp.proto import api
 from time import time
 
 # Protocol version to use
-pMod = api.protoModules[api.protoVersion1]
-#pMod = api.protoModules[api.protoVersion2c]
+#pMod = api.protoModules[api.protoVersion1]
+pMod = api.protoModules[api.protoVersion2c]
 
 # SNMP table header
 headVars = [ pMod.ObjectIdentifier((1,3,6)) ]

@@ -28,11 +28,12 @@ pMod.apiMessage.setPDU(reqMsg, reqPDU)
 
 startedAt = time()
 
-def cbTimerFun(timeNow):
+def Timer(timeNow):
     if timeNow - startedAt > 3:
         raise Exception("Request timed out")
-    
-def cbRecvFun(transportDispatcher, transportDomain, transportAddress,
+
+
+def Receive(transportDispatcher, transportDomain, transportAddress,
               wholeMsg, reqPDU=reqPDU):
     while wholeMsg:
         rspMsg, wholeMsg = decoder.decode(wholeMsg, asn1Spec=pMod.Message())
@@ -51,19 +52,20 @@ def cbRecvFun(transportDispatcher, transportDomain, transportAddress,
 
 transportDispatcher = AsynsockDispatcher()
 
-transportDispatcher.registerRecvCbFun(cbRecvFun)
-transportDispatcher.registerTimerCbFun(cbTimerFun)
+transportDispatcher.registerRecvCbFun(Receive)
+transportDispatcher.registerTimerCbFun(Timer)
 
 # UDP/IPv4
 transportDispatcher.registerTransport(
-    udp.domainName, udp.UdpSocketTransport().openClientMode()
-)
+    udp.domainName,
+    udp.UdpSocketTransport().openClientMode()
+    )
 
 # Pass message to dispatcher
 transportDispatcher.sendMessage(
-#    encoder.encode(reqMsg), udp.domainName, ('localhost', 161)
-    encoder.encode(reqMsg), udp.domainName, ('192.168.1.101', 161)
-)
+    encoder.encode(reqMsg),
+    udp.domainName, ('192.168.1.101', 161)
+    )
 transportDispatcher.jobStarted(1)
 
 
