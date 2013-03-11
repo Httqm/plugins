@@ -20,5 +20,12 @@ from modules import Snmp
 
 class test_Snmp(unittest.TestCase):
 
-    def test1_check(self):
-        pass
+    def test_get(self):
+        """
+        Given community, version, host, OID
+        Should return 72
+        """
+        mySnmp = Snmp.Snmp(community='public', version='2c', host='192.168.1.101')
+        
+        self.assertEqual(mySnmp.get('1.3.6.1.2.1.1.7.0'), 72)
+
