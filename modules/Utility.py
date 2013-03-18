@@ -20,6 +20,9 @@ class Utility(object):
 
 
     def isNumber(self, something):
+        """
+        source : http://stackoverflow.com/questions/354038/how-do-i-check-if-a-string-is-a-number-in-python
+        """
         try:
             float(something)
             return True

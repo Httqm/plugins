@@ -19,7 +19,7 @@ from time import time
 
 class Snmp(object):
 
-    def __init__(self, host, community='public', version='2c', timeoutSeconds=3):
+    def __init__(self, utility, host, community='public', version='2c', timeoutSeconds=3):
         """
 
         """
@@ -27,6 +27,7 @@ class Snmp(object):
         self._host = host
         self._community = community
         self._timeoutSeconds = timeoutSeconds
+        self._utility = utility
 
         # Protocol version to use
         defaultSnmpVersion = api.protoModules[api.protoVersion2c]
@@ -111,7 +112,7 @@ class Snmp(object):
                 else:
                     for oid, value in self._protocolModule.apiPDU.getVarBinds(responsePDU):
 #                        print('%s = %s' % (oid.prettyPrint(), value.prettyPrint()))
-                        self._return[str(oid)] = str(value)
+                        self._return[str(oid)] = value if self._utility.isNumber(value) else str(value)
 
                 self._transportDispatcher.jobFinished(1)
 #                print self._return

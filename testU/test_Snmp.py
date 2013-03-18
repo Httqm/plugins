@@ -14,18 +14,19 @@ os.sys.path.insert(0,parentdir)
 
 
 from modules import Snmp
-#from modules import Utility
+from modules import Utility
 #from modules import Debug
 
+myUtility = Utility.Utility()
 
 class test_Snmp(unittest.TestCase):
 
     def test_get(self):
         """
-        Given community, version, host, OID
+        Given community, version, host, OID = '1.3.6.1.2.1.1.7.0'
         Should return 72
         """
-        mySnmp = Snmp.Snmp(host='192.168.1.101', community='public', version='2c')
+        mySnmp = Snmp.Snmp(myUtility, host='192.168.1.101', community='public', version='2c')
         
-        self.assertEqual(mySnmp.get('1.3.6.1.2.1.1.7.0'), '72')
+        self.assertEqual(mySnmp.get('1.3.6.1.2.1.1.7.0'), 72)
 

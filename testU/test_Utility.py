@@ -41,22 +41,44 @@ class test_Utility(unittest.TestCase):
         self.assertEqual(myUtility.computePercentage(number, total), expected)
 
 
+    ###################################### ##########################################################
     def test1_isNumber(self):
         """
         Given the number 42
 	should return True
         """
-        myUtility   = Utility.Utility()
+        myUtility = Utility.Utility()
         self.assertEqual(myUtility.isNumber(42), True)
 
 
     def test2_isNumber(self):
         """
+        Given the number -273.15
+	should return True
+        """
+        myUtility = Utility.Utility()
+        self.assertEqual(myUtility.isNumber(-273.15), True)
+
+
+    def test3_isNumber(self):
+        """
         Given the number "this is not a number, AAARGL!"
 	should return False
         """
-        myUtility   = Utility.Utility()
-        self.assertEqual(myUtility.isNumber('not a number!'), False)
+        myUtility = Utility.Utility()
+        self.assertEqual(myUtility.isNumber('this is not a number, AAARGL!'), False)
+
+
+    def test4_isNumber(self):
+        """
+        Given the number '' (empty string)
+	should return False
+        """
+        myUtility = Utility.Utility()
+        self.assertEqual(myUtility.isNumber(''), False)
+
+
+    ###################################### ##########################################################
 
 
 # uncomment this to run this unit test manually
