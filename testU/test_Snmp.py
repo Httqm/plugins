@@ -25,7 +25,7 @@ class test_Snmp(unittest.TestCase):
         Given community, version, host, OID
         Should return 72
         """
-        mySnmp = Snmp.Snmp(community='public', version='2c', host='192.168.1.101')
+        mySnmp = Snmp.Snmp(host='192.168.1.101', community='public', version='2c')
         
-        self.assertEqual(mySnmp.get('1.3.6.1.2.1.1.7.0'), 72)
+        self.assertEqual(mySnmp.get('1.3.6.1.2.1.1.7.0'), '72')
 
