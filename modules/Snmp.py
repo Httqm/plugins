@@ -21,6 +21,57 @@
 #   .1.3.6.1.2.1.1.9.1.4.7 = Timeticks: (40) 0:00:00.40
 #   .1.3.6.1.2.1.1.9.1.4.8 = Timeticks: (40) 0:00:00.40
 
+from pysnmp.entity.rfc3413.oneliner import cmdgen
+
+
+class Snmp(object):
+
+    def __init__(self, utility, host, community='public', version='2c'):
+        self._utility = utility
+        self._host = host
+        self._community = community
+        # TODO : version is unused
+
+    def get(self, OID):
+        """
+
+        """
+        cmdGen = cmdgen.CommandGenerator()
+
+        errorIndication, errorStatus, errorIndex, varBinds = cmdGen.getCmd(
+            cmdgen.CommunityData(self._community),
+            cmdgen.UdpTransportTarget((self._host, 161)),
+            OID
+            )
+
+        # Check for errors and print out results
+        if errorIndication:
+            print 'ERROR'
+            print(errorIndication)
+            # TODO : fix this
+        else:
+            if errorStatus:
+                print('%s at %s' % (
+                    errorStatus.prettyPrint(),
+                    errorIndex and varBinds[int(errorIndex)-1] or '?'
+                    )
+                )
+                # TODO : fix this
+            else:
+                for oid, value in varBinds:
+#                    print 'OID : ' + str(oid) + ', VALUE : ' + str(value)
+                    try:
+                        oidValue = value if self._utility.isNumber(value) else str(value)
+                    except AttributeError:
+                        # When the specified OID doesn't exist, 'value' doesn't either
+                        oidValue = None
+
+#            print oidValue
+        return oidValue
+
+
+
+
 
 
 # source : http://pysnmp.sourceforge.net/examples/current/v1arch/manager/getgen.html
@@ -32,7 +83,7 @@ from pysnmp.proto import api
 from time import time
 
 
-class Snmp(object):
+class Snmp2(object):
 
     def __init__(self, utility, host, community='public', version='2c', timeoutSeconds=3):
         """
