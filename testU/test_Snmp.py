@@ -61,10 +61,16 @@ class test_Snmp(unittest.TestCase):
     def test1_walk(self):
         """
         Given community, version, host, OID = '1.3.6.1.2.1.1.9.1.4'
-        Should return a dictionary containing 40 (integer) on each key/value pair
+        Should return a dictionary which values are all 40 (integer)
         """
         mySnmp = Snmp.Snmp(myUtility, host='192.168.1.101', community='public', version='2c')
         result = mySnmp.walk('1.3.6.1.2.1.1.9.1.4')
         resultIsADict = True if isinstance(result, dict) else False
 
-        self.assertTrue(resultIsADict)
+        valuesAreOk = True
+        for value in result.values():
+#            print value
+            if value != 40:
+                valuesAreOk = False
+                break
+        self.assertTrue(resultIsADict and valuesAreOk)

@@ -32,13 +32,14 @@ class Snmp(object):
         self._community = community
         # TODO : version is unused
 
+        self._cmdGen = cmdgen.CommandGenerator()
+
+
     def get(self, OID):
         """
 
         """
-        cmdGen = cmdgen.CommandGenerator()
-
-        errorIndication, errorStatus, errorIndex, varBinds = cmdGen.getCmd(
+        errorIndication, errorStatus, errorIndex, varBinds = self._cmdGen.getCmd(
             cmdgen.CommunityData(self._community),
             cmdgen.UdpTransportTarget((self._host, 161)),
             OID
@@ -68,6 +69,58 @@ class Snmp(object):
 
 #            print oidValue
         return oidValue
+
+
+    def walk(self, OID):
+        """
+
+        """
+        returnData = {}
+        errorIndication, errorStatus, errorIndex, varBindTable = self._cmdGen.nextCmd(
+            cmdgen.CommunityData(self._community),
+            cmdgen.UdpTransportTarget((self._host, 161)),
+            OID,
+            )
+
+        if errorIndication:
+            print(errorIndication)
+        else:
+            if errorStatus:
+                print('%s at %s' % (
+                    errorStatus.prettyPrint(),
+                    errorIndex and varBindTable[-1][int(errorIndex)-1] or '?'
+                    )
+                )
+            else:
+                for varBindTableRow in varBindTable:
+                    for oid, value in varBindTableRow:
+#                        print('%s = %s' % (oid.prettyPrint(), value.prettyPrint()))
+
+                        try:
+                            returnData[oid] = value if self._utility.isNumber(value) else str(value)
+                        except AttributeError:
+                            # When the specified OID doesn't exist, 'value' doesn't either
+                            returnData[oid] = None
+#            print returnData
+        return returnData
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
