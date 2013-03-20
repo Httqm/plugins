@@ -1,10 +1,25 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# snmpwalk -On -c public -v 2c 192.168.1.101 1.3.6.1
-
-#snmpget -On -c public -v 2c 192.168.1.101 1.3.6.1.2.1.1.7.0
-# ==> .1.3.6.1.2.1.1.7.0 = INTEGER: 72
+# SNMP GET :
+#
+# snmpget -On -c public -v 2c 192.168.1.101 1.3.6.1.2.1.1.7.0
+#   ==> returns :
+#   .1.3.6.1.2.1.1.7.0 = INTEGER: 72
+#
+#
+# SNMP WALK :
+#
+# snmpwalk -On -c public -v 2c 192.168.1.101 1.3.6.1.2.1.1.9.1.4
+#   ==> returns :
+#   .1.3.6.1.2.1.1.9.1.4.1 = Timeticks: (40) 0:00:00.40
+#   .1.3.6.1.2.1.1.9.1.4.2 = Timeticks: (40) 0:00:00.40
+#   .1.3.6.1.2.1.1.9.1.4.3 = Timeticks: (40) 0:00:00.40
+#   .1.3.6.1.2.1.1.9.1.4.4 = Timeticks: (40) 0:00:00.40
+#   .1.3.6.1.2.1.1.9.1.4.5 = Timeticks: (40) 0:00:00.40
+#   .1.3.6.1.2.1.1.9.1.4.6 = Timeticks: (40) 0:00:00.40
+#   .1.3.6.1.2.1.1.9.1.4.7 = Timeticks: (40) 0:00:00.40
+#   .1.3.6.1.2.1.1.9.1.4.8 = Timeticks: (40) 0:00:00.40
 
 
 
@@ -38,9 +53,6 @@ class Snmp(object):
             '2c' : api.protoModules[api.protoVersion2c]
             }.get(version, defaultSnmpVersion)
 
-#        print self._protocolModule
-        pass
-
 
     def get(self, OID):
         """
@@ -59,7 +71,7 @@ class Snmp(object):
 
         """
         self._OID = OID
-        pass
+        return {}
 
 
     def _buildPDU(self):

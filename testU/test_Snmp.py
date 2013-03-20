@@ -58,3 +58,13 @@ class test_Snmp(unittest.TestCase):
 #        self.assertEqual(mySnmp.get('1.3.6.1.2.1.1.7.0'), 72)
 
 
+    def test1_walk(self):
+        """
+        Given community, version, host, OID = '1.3.6.1.2.1.1.9.1.4'
+        Should return a dictionary containing 40 (integer) on each key/value pair
+        """
+        mySnmp = Snmp.Snmp(myUtility, host='192.168.1.101', community='public', version='2c')
+        result = mySnmp.walk('1.3.6.1.2.1.1.9.1.4')
+        resultIsADict = True if isinstance(result, dict) else False
+
+        self.assertTrue(resultIsADict)
