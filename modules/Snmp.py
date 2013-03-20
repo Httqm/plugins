@@ -112,11 +112,12 @@ class Snmp(object):
                 else:
                     for oid, value in self._protocolModule.apiPDU.getVarBinds(responsePDU):
 #                        print('%s = %s' % (oid.prettyPrint(), value.prettyPrint()))
-                        self._return[str(oid)] = value if self._utility.isNumber(value) else str(value)
-
+                        try:
+                            self._return[str(oid)] = value if self._utility.isNumber(value) else str(value)
+                        except AttributeError:
+                            # When the specified OID doesn't exist, 'value' doesn't either
+                            self._return[str(oid)] = None
                 self._transportDispatcher.jobFinished(1)
-#                print self._return
-#                print self._return['1.3.6.1.2.1.1.7.0']
         return wholeMsg
 
 
