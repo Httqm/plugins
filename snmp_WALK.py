@@ -12,7 +12,10 @@ from time import time
 pMod = api.protoModules[api.protoVersion2c]
 
 # SNMP table header
-headVars = [ pMod.ObjectIdentifier((1,3,6)) ]
+#headVars = [ pMod.ObjectIdentifier((1,3,6)) ]
+headVars = [ pMod.ObjectIdentifier((1,3,6,1,2,1,1,9,1)) ]
+#1.3.6.1.2.1.1.9.1.4
+
 
 # Build PDU
 reqPDU =  pMod.GetNextRequestPDU()

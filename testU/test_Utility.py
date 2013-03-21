@@ -78,6 +78,15 @@ class test_Utility(unittest.TestCase):
         self.assertEqual(myUtility.isNumber(''), False)
 
 
+    def test5_isNumber(self):
+        """
+        Given the string '1.2.3'
+	should return False
+        """
+        myUtility = Utility.Utility()
+        self.assertEqual(myUtility.isNumber('1.2.3'), False)
+
+
     ###################################### ##########################################################
 
 

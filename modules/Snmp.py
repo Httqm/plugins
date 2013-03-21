@@ -21,17 +21,19 @@
 #   .1.3.6.1.2.1.1.9.1.4.7 = Timeticks: (40) 0:00:00.40
 #   .1.3.6.1.2.1.1.9.1.4.8 = Timeticks: (40) 0:00:00.40
 
+
+# /usr/local/lib/python2.6/dist-packages/pysnmp/entity/rfc3413/oneliner/cmdgen.py
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 
 
 class Snmp(object):
 
-    def __init__(self, utility, host, community='public', version='2c'):
+    def __init__(self, utility, host, community='public', version='2c', timeoutMilliseconds=1000):
         self._utility = utility
         self._host = host
         self._community = community
+        self._timeoutMilliseconds = timeoutMilliseconds
         # TODO : version is unused
-
         self._cmdGen = cmdgen.CommandGenerator()
 
 
@@ -41,9 +43,16 @@ class Snmp(object):
         """
         errorIndication, errorStatus, errorIndex, varBinds = self._cmdGen.getCmd(
             cmdgen.CommunityData(self._community),
-            cmdgen.UdpTransportTarget((self._host, 161)),
+
+            # /usr/local/lib/python2.6/dist-packages/pysnmp/entity/rfc3413/oneliner/target.py
+            cmdgen.UdpTransportTarget(
+                transportAddr = (self._host, 161),
+                timeout = self._timeoutMilliseconds / 1000,
+                retries = 3
+                ),
             OID
             )
+            # TODO : test the timeout + retries
 
         # Check for errors and print out results
         if errorIndication:
@@ -95,8 +104,11 @@ class Snmp(object):
                 for varBindTableRow in varBindTable:
                     for oid, value in varBindTableRow:
 #                        print('%s = %s' % (oid.prettyPrint(), value.prettyPrint()))
+
+                        oid     = str(oid)
+                        value   = str(value)
                         try:
-                            returnData[oid] = value if self._utility.isNumber(value) else str(value)
+                            returnData[oid] = float(value) if self._utility.isNumber(value) else value
                         except AttributeError:
                             # When the specified OID doesn't exist, 'value' doesn't either
                             returnData[oid] = None
