@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 ######################################### url.py ####################################################
 # FUNCTION :
@@ -25,8 +25,7 @@ class Url(object):
 
 
     def getQuery(self):
-        import string
-        tmp = string.replace(self._full, 'http://' + self.getHostName(), '')
+        tmp = self._full.replace('http://' + self.getHostName(), '')
         return tmp if len(tmp) else '/'
 
 

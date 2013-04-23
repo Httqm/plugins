@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 ######################################### NagiosPlugin.py ###########################################
 # FUNCTION :
@@ -46,7 +46,7 @@ class NagiosPlugin(object):
         outputMessage = self._name + ' ' + exitStatus + '. ' + exitMessage
         if self._perfData:
             outputMessage += '|' + self._perfData
-        print outputMessage
+        print(outputMessage)
         self._mySys.exit(self._exitCodes[exitStatus])
 
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import unittest
@@ -74,7 +74,6 @@ class test_Snmp(unittest.TestCase):
         Given community, version, host, OID = '1.3.6.1.2.1.1.9.1.2'
         Should return a dictionary which values all contain '1.3.6.1.'
         """
-        import string
 
         mySnmp = Snmp.Snmp(
             myUtility,
@@ -91,7 +90,7 @@ class test_Snmp(unittest.TestCase):
         valuesAreOk = True
         for value in result.values():
             try:
-                string.index(value, '1.3.6.1.')
+                value.index('1.3.6.1.')
             except ValueError:
                 valuesAreOk = False
         self.assertTrue(resultIsADict and valuesAreOk)

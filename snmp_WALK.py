@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # source : http://pysnmp.sourceforge.net/examples/current/v1arch/manager/nextgen.html
 
 from pysnmp.carrier.asynsock.dispatch import AsynsockDispatcher

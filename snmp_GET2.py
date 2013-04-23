@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # source : http://pysnmp.sourceforge.net/examples/current/v3arch/oneliner/manager/cmdgen/get-v2c.html
 
 # snmpget -v2c -c public -ObentU 192.168.1.101 1.3.6.1.2.1.1.7.0

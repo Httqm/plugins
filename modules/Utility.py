@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 class Utility(object):
@@ -26,5 +26,5 @@ class Utility(object):
         try:
             float(something)
             return True
-        except ValueError:
+        except (ValueError, TypeError):
             return False
