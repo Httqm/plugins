@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # SNMP GET :
@@ -22,7 +22,9 @@
 #   .1.3.6.1.2.1.1.9.1.2.8 = OID: .1.3.6.1.6.3.16.2.2.1
 
 # /usr/local/lib/python2.6/dist-packages/pysnmp/entity/rfc3413/oneliner/cmdgen.py
+# /usr/local/lib/python3.1/dist-packages/pysnmp-4.2.5rc0-py3.1.egg/pysnmp
 from pysnmp.entity.rfc3413.oneliner import cmdgen
+from pysnmp.proto.rfc1905 import NoSuchObject
 
 
 class Snmp(object):
@@ -52,7 +54,7 @@ class Snmp(object):
                 OID
                 )
                 # TODO : test the timeout + retries
-        except Exception, e:    # this catches errors such as invalid IP
+        except Exception as e:    # this catches errors such as invalid IP
             self._debug.show('GET - ERROR 1 : %s' % e.args[0])
             return None
 
@@ -68,10 +70,18 @@ class Snmp(object):
                         )
                     )
                 # TODO : don't print, 'except'
+
             else:
+
+                # http://stackoverflow.com/questions/16178565/how-to-identify-a-nosuchobject-in-python
+                if isinstance(varBinds[0][1], NoSuchObject):    # 'NoSuchObject' in returned tuple because of invalid OID
+                    self._debug.show('GET - ERROR 3 : Invalid OID')
+                    return None
+
                 for oid, value in varBinds:
                     try:
                         oidValue = value if self._utility.isNumber(value) else str(value)
+ 
                     except AttributeError:
                         self._debug.show('GET - ERROR 3 : Invalid OID')
                         # When the specified OID doesn't exist, 'value' doesn't either
@@ -88,7 +98,7 @@ class Snmp(object):
                 cmdgen.UdpTransportTarget((self._host, self._port)),
                 OID,
                 )
-        except Exception, e:    # this catches errors such as invalid IP
+        except Exception as e:    # this catches errors such as invalid IP
             self._debug.show('WALK - ERROR 1 : %s' % e.args[0])
             return None
 
@@ -104,7 +114,7 @@ class Snmp(object):
                     )
                 # TODO : don't print, 'except'
             else:
-                if not varBindTable:    # list is empty because on invalid OID
+                if not varBindTable:    # list is empty because of invalid OID
                     self._debug.show('WALK - ERROR 3 : Invalid OID')
                     return None
 
