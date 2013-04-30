@@ -1,0 +1,186 @@
+#!/bin/bash
+
+######################################### check_mysql ###############################################
+# FUNCTION :	Return the total number of MySQL processes (+ alerts on thresholds),
+#				and the number of sleeping connections (for graph only)
+#
+# AUTHOR :		Matthieu FOURNET (matthieu.fournet@orange.com)
+# LICENSE :		GPL - http://www.fsf.org/licenses/gpl.txt
+#
+# NOTES :		1. This plugin requires an account with some privileges on the monitored MySQL server :
+#					grant process on *.* to 'mysqlUser'@'monitoringPollerIp';
+#					grant process on *.* to 'mysqlUser'@'monitoringPollerIp' identified by 'mysqlPassword';
+#
+# COMMAND LINE :
+#				check_mysql -H <mysqlHost> -u "<mysqlUser>" -p "<mysqlPassword>" -w <warn> -c <crit> -v
+#
+# VERSION :		20130430
+########################################## ##########################################################
+
+########################################## ##########################################################
+# FUNCTIONS
+########################################## ##########################################################
+#------------------------
+# Show the plugin help message.
+# ARGUMENTS :	none
+# RETURN : 		void
+#------------------------
+exitShowHelp() {
+	cat << GLOUBIBOULGA
+	FUNCTION:
+		- alert on the number of MySQL processes running (based on "show processlist;")
+		- return the number of sleeping processes (no alerts, graphs only)
+
+	USAGE:
+		$0 -H <MySQL host> -u <MySQL user> -p <MySQL password> -w <warning> -c <critical>
+
+	OPTIONS:
+		-h	Show this help
+		-H	MySQL host IP address or DNS name
+		-w	WARNING treshold
+		-c	CRITICAL treshold
+		-v	Verbose
+GLOUBIBOULGA
+	exit $STATE_UNKNOWN
+	}
+
+
+#------------------------
+# Show (or not) the perfdata, return the exit code and leave script
+# ARGUMENTS :
+#	arg1 (STRING) :	output message
+#	arg2 (STRING) : output perfdata
+#	arg3 (INT) : 	exit code
+#
+# RETURN : void
+#------------------------
+exitPlugin() {
+	outputMessage=$1;
+	outputPerfdata=$2;
+	exitCode=$3;
+
+	echo "$1|$2"	# i.e. : "outputMessage|outputPerfdata"
+	exit $exitCode
+	}
+
+
+########################################## ##########################################################
+# /FUNCTIONS
+# CONFIG
+########################################## ##########################################################
+STATE_OK=0
+STATE_WARNING=1
+STATE_CRITICAL=2
+STATE_UNKNOWN=3
+STATE_DEPENDENT=4
+
+OPT_VERBOSE=0
+
+exitCode=$STATE_OK
+pluginOutput='MySQL Queries '
+pluginPerfdata=''
+
+tmpFile="tmp.$$"
+
+mysqlBin=$(which mysql)
+
+########################################## ##########################################################
+# /CONFIG
+# USER INPUT VALIDATION
+########################################## ##########################################################
+while getopts 'hH:u:p:c:w:v' option;do	# http://man.cx/getopts
+	case $option in
+		h)
+			exitShowHelp
+			;;
+		H)
+			OPT_MYSQLHOST=$OPTARG
+			;;
+		u)
+			OPT_MYSQLUSER=$OPTARG
+			;;
+		p)
+			OPT_MYSQLPASSWORD=$OPTARG
+			;;
+		c)
+			OPT_CRITICAL=$OPTARG
+			;;
+		w)
+			OPT_WARNING=$OPTARG
+			;;
+		v)
+			OPT_VERBOSE=1
+			;;
+		?)
+			exitShowHelp
+			exit
+			;;
+	 esac
+done
+
+if [ $OPT_VERBOSE -eq 1 ]; then
+	echo "[DEBUG] Options :
+	OPT_MYSQLHOST :		$OPT_MYSQLHOST
+	OPT_MYSQLUSER :		$OPT_MYSQLUSER
+	OPT_MYSQLPASSWORD :	$OPT_MYSQLPASSWORD
+	OPT_CRITICAL :		$OPT_CRITICAL
+	OPT_WARNING :		$OPT_WARNING
+	OPT_VERBOSE :		$OPT_VERBOSE
+	tmpFile     :		$tmpFile"
+fi
+
+# checking options given to plugin
+if [ -z $OPT_WARNING ] || [ -z $OPT_CRITICAL ]; then
+	 exitPlugin '[ERROR] WARNING and CRITICAL parameters are mandatory.' '' 0 $STATE_UNKNOWN
+fi
+
+if [ $OPT_WARNING -gt $OPT_CRITICAL ]; then
+	 exitPlugin '[ERROR] WARNING must be less than CRITICAL.' '' 0 $STATE_UNKNOWN
+fi
+
+########################################## ##########################################################
+# GETTING METRICS
+########################################## ##########################################################
+$mysqlBin -h $OPT_MYSQLHOST -u $OPT_MYSQLUSER -p"$OPT_MYSQLPASSWORD" -e 'show processlist;' > $tmpFile
+
+# Creation of $tmpFile sometimes fails (?). Let's handle it !
+[ -f $tmpFile ] || exitPlugin "$tmpFile not found" '' $STATE_UNKNOWN
+
+# Total nb of processes
+nbTotal=$(($(grep -c "" $tmpFile)-2))	# not counting the header line and the 'show processlist' process
+
+# Sleeping processes
+nbSleeping=$(grep -ic "sleep" $tmpFile)
+
+
+########################################## ##########################################################
+# Cleaning
+########################################## ##########################################################
+[ -f $tmpFile ] && rm $tmpFile
+
+
+########################################## ##########################################################
+# OUTPUT STATUS + PERFDATA
+########################################## ##########################################################
+if [ $nbTotal -lt $OPT_WARNING ];then
+	exitCode=$STATE_OK
+	pluginOutput=$pluginOutput"OK : Current ($nbTotal) < Warning ($OPT_WARNING)"
+elif [ $nbTotal -gt $OPT_CRITICAL ];then
+	exitCode=$STATE_CRITICAL
+	pluginOutput=$pluginOutput"CRITICAL : Current ($nbTotal) > Critical ($OPT_CRITICAL)"
+elif [ $nbTotal -gt $OPT_WARNING ] && [ $nbTotal -lt $OPT_CRITICAL ] ;then
+	exitCode=$STATE_WARNING
+	pluginOutput=$pluginOutput"WARNING : Warning ($OPT_WARNING) < Current ($nbTotal) < Critical ($OPT_CRITICAL)"
+fi
+
+pluginPerfdata="nbProcess=$nbTotal;$OPT_WARNING;$OPT_CRITICAL sleeping=$nbSleeping"
+exitPlugin "$pluginOutput" "$pluginPerfdata" $exitCode
+
+# perfdata format :
+#	'label'=value[UOM];[warn];[crit];[min];[max]
+# source : http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN201
+
+
+########################################## ##########################################################
+# The end!
+########################################## ##########################################################
