@@ -2,7 +2,7 @@
 # nagios: +epn
 
 ######################################### check_ssh_linux_storage_inodes ############################
-# FUNCTION :
+# FUNCTION :	Checks the specified filesystem for used space and inodes, and alerts accordingly.
 #
 # AUTHOR :		Matthieu FOURNET (matthieu.fournet@orange.com)
 # LICENSE :		GPL - http://www.fsf.org/licenses/gpl.txt
@@ -335,5 +335,8 @@ Plugin <span class="pluginName">check_ssh_linux_storage_inodes</span> : checks t
 =head1 Author
 
 Matthieu FOURNET (matthieu.fournet@orange.com)
+
+
+
 
 =cut
