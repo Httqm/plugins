@@ -1,0 +1,295 @@
+#!/usr/bin/perl -w
+# nagios: +epn
+
+######################################### check_snmp_linux_storage ##################################
+# FUNCTION :	Reports the specified filesystem usage, and alert accordingly.
+#
+# AUTHOR :		Matthieu FOURNET (matthieu.fournet@orange.com)
+# LICENSE :		GPL - http://www.fsf.org/licenses/gpl.txt
+#
+# NOTES :		-
+#
+# COMMAND LINE :
+#	check_snmp_linux_storage -H 127.0.0.1 --snmp-version 2c --rocommunity public --filesystem="/" -w 75 -c 85 --snmp-debug
+#
+# VERSION :		20130501
+########################################## ##########################################################
+
+
+########################################## ##########################################################
+# SUBS
+########################################## ##########################################################
+sub round ($$) {
+	sprintf "%.$_[1]f", $_[0];
+	}
+
+sub display_format {
+	my $val = shift;
+	return sprintf ( "%.2f Go", $val / (2 ** 30) ) if( $val > ( 2 ** 30 ) );
+	return sprintf ( "%.2f Mo", $val / (2 ** 20) ) if( $val > ( 2 ** 20 ) );
+	return sprintf ( "%.2f Ko", $val / (2 ** 10) ) if( $val > ( 2 ** 10 ) );
+	return sprintf ( "%.2f o", $val);
+	}
+
+sub get_fs {
+	my $snmp = shift;
+	my $fs_to_check = shift;
+
+	my $linux_storage_size	= '1.3.6.1.2.1.25.2.3.1.5';
+	my $linux_storage_used	= '1.3.6.1.2.1.25.2.3.1.6';
+	my $linux_storage_units = '1.3.6.1.2.1.25.2.3.1.4';
+	my $linux_storage_descr = '1.3.6.1.2.1.25.2.3.1.3';
+
+	my @oid_list = ();
+	push (@oid_list, $linux_storage_size);
+	push (@oid_list, $linux_storage_used);
+	push (@oid_list, $linux_storage_units);
+	push (@oid_list, $linux_storage_descr);
+
+	my $results = $snmp->walk (@oid_list);
+
+	if (!defined $results) { $snmp->nagios_die('No return from SNMP.'); }
+
+	my $tab_size	= $$results{$linux_storage_size};
+	my $tab_used	= $$results{$linux_storage_used};
+	my $tab_units	= $$results{$linux_storage_units};
+	my $tab_descr	= $$results{$linux_storage_descr};
+
+	# Getting the index of the fs to check
+	my $index = undef;
+	foreach my $oid (sort keys %{$tab_descr}) {
+		Nenm::Utils::debug("FileSystem found : $oid (".$tab_descr->{$oid}.')');
+		if ($tab_descr->{$oid} eq $fs_to_check) {
+			Nenm::Utils::debug("FS to check found, oid=$oid");
+			$oid =~ /^$linux_storage_descr(.+?)$/;
+			$index = $1;
+			Nenm::Utils::debug("						index : $index");
+			last;
+			}
+		}
+
+	if (!defined $index) { $snmp->nagios_die('No filesystem found.'); }
+
+	Nenm::Utils::debug('Returned values : total fs = '.$tab_size->{$linux_storage_size.$index}.', used fs = '.$tab_used->{$linux_storage_used.$index}.', units fs = '.$tab_units->{$linux_storage_units.$index});
+	my $fs_total	= $tab_size->{$linux_storage_size.$index} * $tab_units->{$linux_storage_units.$index};
+	my $fs_used		= $tab_used->{$linux_storage_used.$index} * $tab_units->{$linux_storage_units.$index};
+	Nenm::Utils::debug("Computed values : total fs = $fs_total, used fs = $fs_used");
+
+	if($fs_total == 0) {
+		$snmp->nagios_die('Can not check filesystem size (total=0).');
+		}
+
+	return $fs_total, $fs_used;
+	}
+
+
+########################################## ##########################################################
+# main()
+########################################## ##########################################################
+sub main {
+	use strict;
+	use Nagios::Plugin::SNMP;
+	use Nenm::Utils;
+
+	my $LABEL = 'SNMP STORAGE';
+	my $USAGE = <<EOF;
+%s
+EOF
+
+	my $plugin = Nagios::Plugin::SNMP->new( 'shortname' => $LABEL );
+
+	$plugin->add_arg(
+		spec		=> 'filesystem|f=s',
+		help		=> '-f, --filesystem = Filesystem to check',
+		required	=> 1
+		);
+
+	$plugin->getopts();
+
+	$Nenm::Utils::DEBUG = $plugin->opts->get('snmp-debug');
+
+	my $IP		= $plugin->opts->get('hostname');
+	my $WARN	= $plugin->opts->get('warning');
+	$plugin->nagios_die('Missing warning threshold!') unless $WARN;
+
+	my $CRIT	= $plugin->opts->get('critical');
+	$plugin->nagios_die('Missing critical threshold!') unless $CRIT;
+
+	my $FS		= undef;
+	if(defined $plugin->opts->get('filesystem')) {
+		$FS = $plugin->opts->get('filesystem');
+	} else {
+		nagios_die('Filesystem "'.$FS.'" not found.');
+	}
+
+	Nenm::Utils::debug('Getting filesystems list + data.');
+	my ($fs_total, $fs_used) = get_fs($plugin, $FS);
+
+	# Computing disk usage in %
+	my $used_percent	= round($fs_used*100/$fs_total, 2);
+	# Computing disk usage in human-readable format
+	my $used_human		= display_format($fs_used);
+	my $total_human		= display_format($fs_total);
+	Nenm::Utils::debug($FS.' = '.$used_human.'/'.$total_human." ($used_percent%)");
+
+	my $thresholds_fs			= $plugin->set_thresholds(warning=>$WARN, critical=>$CRIT, min=>0, max=>$fs_total);
+	my $thresholds_fs_percent	= $plugin->set_thresholds(warning=>$WARN, critical=>$CRIT, min=>0, max=>100);
+
+	my $output_label = "$LABEL ";
+
+	$plugin->add_perfdata (
+		label		=> 'fs',
+		value		=> $fs_used,
+		uom			=> 'b',
+		threshold	=> $thresholds_fs
+		);
+
+	$plugin->add_perfdata (
+		label		=> 'fs_util',
+		value		=> $used_percent,
+		uom			=> '%',
+		threshold	=> $thresholds_fs_percent
+		);
+
+	my $result = $plugin->check_threshold (
+		check		=> $used_percent,
+		warning		=> $WARN,
+		critical	=> $CRIT
+		);
+
+	$plugin->nagios_exit ($result,	"$FS usage : ".$used_percent.'% ( > ' . $WARN . "%) ($used_human/$total_human)") if $result eq WARNING;
+	$plugin->nagios_exit ($result,	"$FS usage : ".$used_percent.'% ( > ' . $CRIT . "%) ($used_human/$total_human)") if $result eq CRITICAL;
+	$plugin->nagios_exit (OK,		"$FS usage : ".$used_percent."% ($used_human/$total_human)");
+	}
+
+########################################## ##########################################################
+# Now run !
+########################################## ##########################################################
+exit main();
+
+
+########################################## ##########################################################
+# POD
+########################################## ##########################################################
+
+=pod
+
+=head1 Synopsis
+
+=begin html
+
+<link rel="stylesheet" type="text/css" href="./plugins.css" />
+Plugin <span class="pluginName">check_snmp_linux_storage_index</span> : Reports the specified filesystem usage.
+
+=end html
+
+
+
+
+=head1 Dependencies
+
+use strict;
+use Nagios::Plugin::SNMP;
+use Nenm::Utils;
+
+
+
+
+=head1 Command line
+
+	check_snmp_linux_storage -H 127.0.0.1 --snmp-version 2c --rocommunity public --filesystem="/" -w 75 -c 85 --snmp-debug
+
+=over 4
+
+=item *
+
+-H : IP address of Linux server to check
+
+=item *
+
+-f : 'hrStorageIndex' of filesystem to check
+
+=item *
+
+-w, -c : warning, critical thresholds in percentage
+
+=item *
+
+--snmp-version : explicit ;-)
+
+=item *
+
+--rocommunity : SNMP community
+
+=item *
+
+--snmp-debug : [optional] toggle the debug messages
+
+=item *
+
+--debug : [optional] toggle the debug messages
+
+=back
+
+
+
+
+=head1 Output status
+
+=over 4
+
+=item *
+
+=begin html
+
+<span class="critical">CRITICAL</span> : when the file system used percentage > critical threshold.
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="warning">WARNING</span> : when warning threshold < file system used percentage < critical threshold.
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="ok">OK</span> : when the file system used percentage < warning threshold.
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="unknown">UNKNOWN</span> : (never)
+
+=end html
+
+=back
+
+
+
+
+=head1 Perfdata
+
+=begin html
+
+<span class="perfdata">fs=[bytes_used]b;[warning value];[critical value]</span>
+<br /><br />
+<span class="perfdata">fs_util=[percent_used]%;[warning value];[critical value]</span>
+
+=end html
+
+
+
+
+=head1 Author
+
+Matthieu FOURNET (matthieu.fournet@orange.com)
+
+=cut
