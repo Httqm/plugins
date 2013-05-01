@@ -2,7 +2,8 @@
 # nagios: +epn
 
 ######################################### check_ssh_file_number ########################################
-# FUNCTION :
+# FUNCTION :	Count the number of files (_REAL FILES_ exclusively) within the specified folder, up to
+#				the specified depth (1 = current folder), and return status according to thresholds.
 #
 # AUTHOR :		Matthieu FOURNET (matthieu.fournet@orange.com)
 # LICENSE :		GPL - http://www.fsf.org/licenses/gpl.txt
@@ -236,9 +237,7 @@ In order to avoid zombie "finds" eating CPU/disks on cluttered directories, this
 
 =head1 Command line
 
-	check_ssh_file_number --host=prpbo2.nexen.net --login shinken --folder "/var/www/www.femmeactuelle.fr/var/femmeactuelle/cache/content/femmeactuelle" --maxDepth=2 -w 5000 -c 10000
-	check_ssh_file_number --host=s226.x1.fr --login=shinken --folder=/home/backup -w 5 -c 10 --debug
-	check_ssh_file_number --host=ssh.cluster007.ovh.net --login=programm --folder=/homez.141/programm/cesoirtv/image/emission/home -w 1000 -c 5000
+	check_ssh_file_number --host=<hostName> --login <userName> --folder "</absolute/path/to/folder>" --maxDepth=<depth> -w <warn> -c <crit> --debug
 
 =over 4
 
