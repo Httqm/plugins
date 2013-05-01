@@ -1,0 +1,342 @@
+#!/usr/bin/perl -w
+# nagios: +epn
+
+######################################### check_ssh_file_number ########################################
+# FUNCTION :
+#
+# AUTHOR :		Matthieu FOURNET (matthieu.fournet@orange.com)
+# LICENSE :		GPL - http://www.fsf.org/licenses/gpl.txt
+#
+# NOTES :		This counts _REAL FILES_ only up to the specified depth (1 = current folder).
+#
+# COMMAND LINE :
+#	check_ssh_file_number --host=<hostName> --login <userName> --folder "</absolute/path/to/folder>" --maxDepth=<depth> -w <warn> -c <crit> --debug
+#
+# VERSION :		20130501
+########################################## ##########################################################
+
+########################################## ##########################################################
+# main()
+########################################## ##########################################################
+sub main {
+	use strict;
+	use Nagios::Plugin;
+	use Nenm::Utils;
+
+	use constant TIMEOUT =>15;	# nagios_exit after TIMEOUT seconds
+
+	my $LABEL	= 'CHECK FILE NUMBER';
+	my $USAGE	= <<EOF;
+%s
+EOF
+
+	my $plugin	= Nagios::Plugin->new(
+		'shortname'	=> $LABEL,
+		'usage'		=> $USAGE,
+		'timeout'	=> TIMEOUT	# this value is only used in the output string when leaving on timeout :
+								# "CHECK FILE NUMBER - plugin timed out (timeout 10s)"
+		);
+
+
+	################################## ##########################################################
+	# Re-defining the callback function handling the 'SIGALRM' signal in case of timeout.
+	# $SIG{ALRM} is already defined in /usr/lib/perl5/site_perl/5.8.8/Nagios/Plugin/Getopt.pm, at line 430
+	# Details : http://perldoc.perl.org/functions/alarm.html
+	################################## ##########################################################
+	eval {
+		$SIG{ALRM} = sub {
+			$plugin->nagios_exit(UNKNOWN, 'Plugin timed out ( >'.TIMEOUT.'s )');
+			die "timed out\n";
+		};
+	};
+	################################## ##########################################################
+	# Without this 'eval' block, ePN complains that :
+	#"Exittrap: 3 (Redefine exit to trap plugin exit with eval BLOCK)"
+	# ... so here it is ;-)
+	################################## ##########################################################
+
+
+	# Was said to be declared automatically by Nagios::Plugin (?)
+	# http://search.cpan.org/~tonvoon/Nagios-Plugin-0.35/lib/Nagios/Plugin.pm#SYNOPSIS
+	$plugin->add_arg(
+		spec		=> 'host|H=s',
+		help		=> '-H, --host = IP address or name of host having some storage to check',
+		required	=> 1
+		);
+
+	$plugin->add_arg(
+		spec		=> 'login|l=s',
+		help		=> '-l, --login = SSH login to host having files to check',
+		required	=> 1
+		);
+
+	$plugin->add_arg(
+		spec		=> 'folder|f=s',
+		help		=> '-f, --folder = Folder to count files from',
+		required	=> 1
+		);
+
+	$plugin->add_arg(
+		spec		=> 'maxDepth|d=i',
+		help		=> '-d, --maxDepth = Maximum search depth (similar to "find" maxdepth option : 1 = current folder only).',
+		required	=> 1
+		);
+
+	# '-w' and '-c' are not default parameters for Nagios::Plugin (???)
+	$plugin->add_arg(
+		spec		=> 'warning|w=i',
+		help		=> '-w, --warning = warning threshold',
+		required	=> 1
+		);
+
+	$plugin->add_arg(
+		spec		=> 'critical|c=i',
+		help		=> '-c, --critical = critical threshold',
+		required	=> 1
+		);
+
+	$plugin->add_arg(
+		spec		=> 'debug',
+		help		=> '--debug : toggle debug messages',
+		required	=> 0
+		);
+
+	$plugin->getopts();
+	my $host		= $plugin->opts->get('host');
+	my $login		= $plugin->opts->get('login');
+	my $folder		= $plugin->opts->get('folder');
+	my $maxDepth	= $plugin->opts->get('maxDepth');
+	my $warn		= $plugin->opts->get('warning');
+	my $crit		= $plugin->opts->get('critical');
+	my $debug		= $plugin->opts->get('debug');
+
+	# $warn must be < $crit, except if both are 0.
+	my $noWarnMode=0;
+	if (($warn eq 0) && ($crit eq 0))
+		{ $noWarnMode=1; }
+	else
+		{ $plugin->nagios_die('The warning threshold must be < critical threshold') if $warn >= $crit; }
+
+	# hack to be able to specify the 'debug' option from the command line
+	$Nenm::Utils::DEBUG=0;
+	if(defined($debug))
+		{ $Nenm::Utils::DEBUG=$debug; }
+
+	my %params = (
+		host		=> $host,
+		login		=> $login,
+		folder		=> $folder,
+		maxDepth	=> $maxDepth
+		);
+
+	my $nbFilesInFolder = countFilesInFolder(\%params);
+
+	$plugin->nagios_die("The folder \"$folder\" doesn't exist.") if($nbFilesInFolder eq -1);
+
+	my $output_label = "$LABEL ";
+
+	my $result;
+	if(!$noWarnMode) {
+		$result = $plugin->check_threshold (
+			check		=> $nbFilesInFolder,
+			warning		=> $warn,
+			critical	=> $crit
+			);
+		}
+
+	$plugin->add_perfdata (
+		label		=> 'files',
+		value		=> $nbFilesInFolder,
+		uom			=> '',
+		warning		=> $warn,
+		critical	=> $crit
+		);
+
+	my $outputMessage="$nbFilesInFolder file(s) found in $folder (at depth=$maxDepth)";
+	if($noWarnMode)
+		{ $plugin->nagios_exit ('OK',	'NO WARN. '.$outputMessage); }
+	else {
+		$plugin->nagios_exit ($result,				$outputMessage.' > '.$crit) if $result eq CRITICAL;
+		$plugin->nagios_exit ($result,	$warn.' < '.$outputMessage.' < '.$crit) if $result eq WARNING;
+		$plugin->nagios_exit ($result,				$outputMessage.' < '.$warn);
+		}
+	}
+
+########################################## ##########################################################
+# Now run !
+########################################## ##########################################################
+# uncomment the 'alarm ...;' line below to leave plugin on timeout
+# See also 'SIGALRM' above
+alarm TIMEOUT;
+exit main();
+
+
+########################################## ##########################################################
+# SUBS
+########################################## ##########################################################
+
+sub countFilesInFolder {
+	(my $params)	= @_;
+
+	# 'find' case									| return code
+	# ==============================================+=============
+	# file doesn't exist							|	1
+	# file exists AND doesn't match search criteria	|	0
+	# file exists AND matches search criteria		|	0
+
+	my $folderNotFoundTag='ARGL';	# can be anything ;-)
+
+	# According to clean coding rules, checking whether the folder exists should have been done in a separate function.
+	# But this would require opening 2 SSH sessions at each plugin execution, which is too long.
+
+	my $command = "ssh $$params{'login'}\@$$params{'host'} \" [ -d \"$$params{'folder'}\" ] && { timeout -k 1 ".TIMEOUT."s find \"$$params{'folder'}\" -maxdepth $$params{'maxDepth'} -type f 2>/dev/null | wc -l; } || echo \"$folderNotFoundTag\" \"";
+
+	Nenm::Utils::debug('maxDepth : '.$$params{'maxDepth'});
+
+	my $result	= `$command`;
+	chomp($result);
+
+	# when folder doesn't exist, return -1
+	$result=-1 if ($result eq $folderNotFoundTag);
+
+	Nenm::Utils::debug('\'find\' command           : '.$command);
+	Nenm::Utils::debug('Number of matching files : '.$result);
+
+	return $result;
+	}
+
+
+########################################## ##########################################################
+# POD
+########################################## ##########################################################
+
+=pod
+
+=head1 Synopsis
+
+=begin html
+
+<link rel="stylesheet" type="text/css" href="./plugins.css" />
+Plugin <span class="pluginName">check_ssh_file_number</span> : count the number of files (_REAL FILES_ exclusively) within the specified folder, up to the specified depth (1 = current folder), and return status according to thresholds.<br />
+In order to avoid zombie "finds" eating CPU/disks on cluttered directories, this plugin exits upon timeout by sending a soft kill after TIMEOUT seconds to 'find', and a SIGKILL 1 second later if necessary.
+
+=end html
+
+
+
+
+=head1 Dependencies
+
+	use strict;
+	use Nagios::Plugin;
+	use Nenm::Utils;
+
+
+
+
+=head1 Command line
+
+	check_ssh_file_number --host=prpbo2.nexen.net --login shinken --folder "/var/www/www.femmeactuelle.fr/var/femmeactuelle/cache/content/femmeactuelle" --maxDepth=2 -w 5000 -c 10000
+	check_ssh_file_number --host=s226.x1.fr --login=shinken --folder=/home/backup -w 5 -c 10 --debug
+	check_ssh_file_number --host=ssh.cluster007.ovh.net --login=programm --folder=/homez.141/programm/cesoirtv/image/emission/home -w 1000 -c 5000
+
+=over 4
+
+=item *
+
+-H | --host : IP address or hostname of Linux server to check
+
+=item *
+
+-l | --login : SSH login on target machine
+
+=item *
+
+-f | --folder : folder to investigate
+
+=item *
+
+-d | --maxDepth : maximum search depth (similar to "find" maxdepth option : 1 = current folder only).
+
+=item *
+
+-w | --warning : warning threshold
+
+=item *
+
+-c | --critical : critical threshold
+
+=item *
+
+--debug : [optional] toggle the debug messages
+
+=back
+
+
+
+
+=head1 Output status
+
+=over 4
+
+=item *
+
+=begin html
+
+<span class="critical">CRITICAL</span> : when the number of found files > critical threshold
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="warning">WARNING</span> when :
+<ul>
+	<li>the number of found files > warning threshold</li>
+	<li>AND the number of found files <= critical threshold</li>
+</ul>
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="ok">OK</span> : when the number of found files < warning threshold
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="unknown">UNKNOWN</span> when :
+<ul>
+	<li>the specified warning threshold >= critical threshold</li>
+	<li>OR when the specified folder doesn't exist</li>
+</ul>
+
+=end html
+
+=back
+
+
+
+
+=head1 Perfdata
+
+=begin html
+
+<span class="perfdata">files=[number_of_files];[warning value];[critical value]</span>
+
+=end html
+
+
+
+
+=head1 Author
+
+Matthieu FOURNET (matthieu.fournet@orange.com)
+
+=cut
