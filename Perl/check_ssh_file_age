@@ -1,0 +1,256 @@
+#!/usr/bin/perl -w
+# nagios: +epn
+
+######################################### check_ssh_file_age ########################################
+# FUNCTION :	Count the number of files (REAL _files_ exclusively) older than the specified
+#				max-age limit within the specified folder.
+#				Returns 'CRITICAL' as soon as 1 file is found.
+#
+# AUTHOR :		Matthieu FOURNET (matthieu.fournet@orange.com)
+# LICENSE :		GPL - http://www.fsf.org/licenses/gpl.txt
+#
+# NOTES :		- the critical threshold is the maximum age in minutes.
+#
+# COMMAND LINE :
+#	check_ssh_file_age --host=<hostName> --login=<userName> --file=</full/path/to/folder/or/file> --max-age <maxAgeMinutes> --debug
+#
+# VERSION :		20130501
+########################################## ##########################################################
+
+########################################## ##########################################################
+# main()
+########################################## ##########################################################
+sub main {
+	use strict;
+	use Nagios::Plugin;
+	use Nenm::Utils;
+
+	my $LABEL	= 'CHECK FILE AGE';
+	my $USAGE	= <<EOF;
+%s
+EOF
+
+	my $plugin	= Nagios::Plugin->new( 'shortname' => $LABEL, 'usage' => $USAGE );
+
+	# Was said to be declared automatically by Nagios::Plugin (?)
+	# http://search.cpan.org/~tonvoon/Nagios-Plugin-0.35/lib/Nagios/Plugin.pm#SYNOPSIS
+	$plugin->add_arg(
+		spec		=> 'host|H=s',
+		help		=> '-H, --host = IP address or name of host having some storage to check',
+		required	=> 1
+		);
+
+	$plugin->add_arg(
+		spec		=> 'login|l=s',
+		help		=> '-l, --login = SSH login to host having files to check',
+		required	=> 1
+		);
+
+	$plugin->add_arg(
+		spec		=> 'file|f=s',
+		help		=> '-f, --file = File or folder to check',
+		required	=> 1
+		);
+
+	$plugin->add_arg(
+		spec		=> 'max-age|m=i',
+		help		=> '-m, --max-age = File maximum age in minutes',
+		required	=> 1
+		);
+
+	# '-w' and '-c' are not default parameters for Nagios::Plugin (???)
+#	$plugin->add_arg(
+#		spec		=> 'critical|c=i',
+#		help		=> '-c, --critical = Max age in minutes',
+#		required	=> 1
+#		);
+
+	$plugin->add_arg(
+		spec		=> 'debug',
+		help		=> '--debug : toggle debug messages',
+		required	=> 0
+		);
+
+	$plugin->getopts();
+	my $host		= $plugin->opts->get('host');
+	my $login		= $plugin->opts->get('login');
+#	my $crit		= $plugin->opts->get('critical');
+	my $maxAge		= $plugin->opts->get('max-age');
+	my $file		= $plugin->opts->get('file');
+	my $debug		= $plugin->opts->get('debug');
+
+	# hack to be able to specify the 'debug' option from the command line
+	$Nenm::Utils::DEBUG=0;
+	if(defined($debug))
+		{ $Nenm::Utils::DEBUG=$debug; }
+
+	my %params =
+		(
+		host			=> $host,
+		login			=> $login,
+		file			=> $file,
+		maxAgeMinutes	=> $maxAge,
+		nbFoundFiles	=> 0
+		);
+
+	my $nbFilesOlderThanThreshold=countFilesOlderThanThreshold(\%params);
+
+	my $output_label = "$LABEL ";
+
+	my $result = $plugin->check_threshold (
+		check		=> $nbFilesOlderThanThreshold,
+		critical	=> 0	# critical as soon as 1 matching file is found.
+		);
+
+	my $outputMessage="$nbFilesOlderThanThreshold file(s) found in $file older than $maxAge minute(s).";
+	$plugin->nagios_exit ($result,	$outputMessage) if $result eq CRITICAL;
+	$plugin->nagios_exit ($result,	$outputMessage);
+	}
+
+########################################## ##########################################################
+# Now run !
+########################################## ##########################################################
+exit main();
+
+
+########################################## ##########################################################
+# SUBS
+########################################## ##########################################################
+sub countFilesOlderThanThreshold {
+	(my $params)	= @_;
+
+	# 'find' case									| return code
+	# ==============================================+=============
+	# file doesn't exist							|	1
+	# file exists AND doesn't match search criteria	|	0
+	# file exists AND matches search criteria		|	0
+
+	# The 'egrep -v $fileName' is there to exclude the parent folder from the file count.
+	my $command	= "ssh $$params{'login'}\@$$params{'host'} \"find \"$$params{'file'}\" -type f -a -cmin +$$params{'maxAgeMinutes'} 2>/dev/null | egrep -v \"^$$params{'file'}\$\" | wc -l \"";
+
+	my $result	= `$command`;
+	chomp($result);
+
+	Nenm::Utils::debug('File searched            : '.$$params{'file'});
+	Nenm::Utils::debug('Max Age [minutes]        : '.$$params{'maxAgeMinutes'});
+	Nenm::Utils::debug('\'find\' command           : '.$command);
+	Nenm::Utils::debug('Number of matching files : '.$result);
+
+	return $result;
+	}
+
+
+########################################## ##########################################################
+# POD
+########################################## ##########################################################
+
+=pod
+
+=head1 Synopsis
+
+=begin html
+
+<link rel="stylesheet" type="text/css" href="./plugins.css" />
+Plugin <span class="pluginName">check_ssh_file_age</span> : count the number of files (REAL _files_ exclusively) older than the specified limit within the specified folder. Returns 'CRITICAL' as soon as 1 file is found.
+
+=end html
+
+
+
+
+=head1 Dependencies
+
+	use strict;
+	use Nagios::Plugin;
+	use Nenm::Utils;
+
+
+
+
+=head1 Command line
+
+	check_ssh_file_age --host=<hostName> --login=<userName> --file=</full/path/to/folder/or/file> --max-age <maxAgeMinutes> --debug
+
+=over 4
+
+=item *
+
+-H | --host : IP address or hostname of Linux server to check.
+
+=item *
+
+-l | --login : SSH login on target machine
+
+=item *
+
+-f | --file : the file to look for / the folder to investigate.
+
+=item *
+
+-m | --max-age : maximum age of file in minutes
+
+=item *
+
+--debug : [optional] toggle the debug messages
+
+=back
+
+
+
+
+=head1 Output status
+
+=over 4
+
+=item *
+
+=begin html
+
+<span class="critical">CRITICAL</span> : when at least 1 matching file was found.
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="warning">WARNING</span> : never.
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="ok">OK</span> : when no matching file was found.
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="unknown">UNKNOWN</span> : never.
+
+=end html
+
+=back
+
+
+
+
+=head1 Perfdata
+
+(none)
+
+
+
+
+=head1 Author
+
+Matthieu FOURNET (matthieu.fournet@orange.com)
+
+
+
+
+=cut
