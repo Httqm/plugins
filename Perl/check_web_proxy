@@ -1,0 +1,688 @@
+#!/usr/bin/perl -w
+# nagios: +epn
+
+######################################### check_web_proxy ###########################################
+# FUNCTION :	Send HTTP queries to web servers through direct connection / proxy and measure the response time.
+#
+# AUTHOR :		Matthieu FOURNET (fournet.matthieu@gmail.com)
+# LICENSE :		GPL - http://www.fsf.org/licenses/gpl.txt
+#
+# NOTES :		1. If the proxy is specified only with its "IP:port", the plugin will fail saying "Proxy must be specified as absolute URI".
+#					The protocol string "http://" must be specified too.
+#				2. Leaving the plugin on timeout is based on the Perl 'alarm' command, which only works on Unix (http://www.perlmonks.org/?node_id=882050)
+#				3. When the page 'get' fails, the plugin instantly leaves on 'CRITICAL'. This is a 'WWW::Mechanize' limitation.
+#				4. Form fields are HTML "names" attributes, not "id".
+#
+# COMMAND LINE :
+#	[ basic ]
+#		check_web_proxy -w [warn] -c [crit] --http_proxy 0 --formMode 0 --url "[http://www.example.com]" --match "[keyword]" --debug
+#
+# 	[ basic + nowarn ]
+#		check_web_proxy -w 0 -c 0 --http_proxy 0 --formMode 0 --url "[http://www.example.com]" --match "[keyword]" --debug
+#
+#	[ from (with POST) : WordPress login ]
+#		check_web_proxy -w [warn] -c [crit] --http_proxy 0 --formMode 1 --url "[http://www.example.com/wp-login]" --formName "[loginform]" --match "[keyword]" --formFieldsNames="[log!pwd!redirect_to!testcookie!wp-submit]" --formFieldsValues="[userName!password!http://www.example.com/wp-admin/!1!Connect]" --debug
+#
+#	[ form (with POST) + nowarn ]
+#		check_web_proxy -w 0 -c 0 --http_proxy 0 --formMode 1 --url "[http://www.example.com/wp-login]" --formName "[loginform]" --match "[keyword]" --formFieldsNames="[log!pwd!redirect_to!testcookie!wp-submit]" --formFieldsValues="[userName!password!http://www.example.com/wp-admin/!1!Connect]" --debug
+#
+#	[.htaccess authentication]
+#		check_web_proxy -w 0 -c 0 --url "[http://www.example.com/]" --http_proxy 0 --match "[keyword]" --htPrompt "[htPrompt]" --htUser [htLogin] --htPassword [htPassword]
+#
+#	[ Output is not HTML ]
+#		check_web_proxy -w [warn] -c [crit] --url "[http://www.example.com/]" --match "[keyword]" --http_proxy 0
+#
+# TODO :		- no support yet for HTTP proxy user + pass, and for HTTPS proxy+user+pass
+#				- warn on form authentication failed
+#
+# VERSION :		20130501
+########################################## ##########################################################
+
+sub main {
+	use strict;
+
+	use Nagios::Plugin::WWW::Mechanize;
+	use Nenm::Utils;
+	use Time::Local;
+	use Time::HiRes;
+	use Time::HiRes qw(gettimeofday);
+
+	use constant TIMEOUT =>25;	# this value must be :
+								#	greater than the highest possible critical value ('-c xxx' arg)
+								#	AND less than the plugin timeout (defaulted to 10s in /etc/shinken/nagios.cfg )
+
+
+=cut
+
+	our @HTTP_STATUSCODES_OK = (200, 302, 304);
+#	print $HTTP_STATUSCODES_OK[1];
+
+
+	our %listOfHttpStatusCodes = (
+		'OK'		=> [200, 206, 304],
+#		'WARNING'	=> [],
+		'CRITICAL'	=> [400, 401, 403, 404, 500, 503, 504],
+		'UNKNOWN'	=> [301, 302],
+		);
+
+=cut
+
+
+
+	my $LABEL = 'CHECK WEB';
+	my $USAGE = <<EOF;
+%s
+EOF
+
+# Customizing locales
+# source : http://perldoc.perl.org/perllocale.html#USING-LOCALES
+#use POSIX qw(locale_h);
+#setlocale(LC_ALL, 'fr_FR.utf8');	# current locale found in system shell with : 'locale -a'
+
+
+########################################## ##########################################################
+# NOTE : environment variables such as $ENV{HTTP_PROXY} are ignored
+#		 if they are declared after instantiating the Mechanize object (why?)
+########################################## ##########################################################
+
+	my $plugin = Nagios::Plugin::WWW::Mechanize->new(
+		'shortname'		=> $LABEL,
+		'usage'			=> $USAGE,
+		'include_time'	=> 0,
+		'timeout'		=> TIMEOUT	# this value is only used in the output string when leaving on timeout :
+									#	"CHECK_WEB_PROXY UNKNOWN - plugin timed out (timeout 5s)"
+		);
+
+	# PROXY SETTINGS
+	$plugin->add_arg(
+		'spec'		=> 'http_proxy=s',
+		'help'		=> '--http_proxy',
+		'required'	=> 1);
+
+	# THRESHOLDS
+	$plugin->add_arg(
+		'spec'		=> 'warning|w=s',
+		'help'		=> '--warning  -w',
+		'required'	=> 1);
+
+	$plugin->add_arg(
+		'spec'		=> 'critical|c=s',
+		'help'		=> '--critical -c',
+		'required'	=> 1);
+
+	$plugin->add_arg(
+		'spec'		=> 'url=s',
+		'help'		=> '--url : URL of page to check or URL to submit form data to',
+		'required'	=> 1);
+
+	$plugin->add_arg(
+		'spec'		=> 'match=s',
+		'help'		=> '--match : string to search on URL',
+		'required'	=> 1);
+
+	# HTML PAGE FORM PARAMETERS
+	$plugin->add_arg(
+		'spec'		=> 'formMode=s',
+		'help'		=> '--formMode=1|0',
+		'required'	=> 1,
+		'default' => '0');
+
+	$plugin->add_arg(
+		'spec'		=> 'formFieldsNames=s',
+		'help'		=> "--formFieldsNames: |-separated list of form fields names.\n",
+		'required'	=> 0);
+
+	$plugin->add_arg(
+		'spec'		=> 'formFieldsValues=s',
+		'help'		=> "--formFieldsValues: |-separated list of form fields values.\n",
+		'required'	=> 0);
+
+	$plugin->add_arg(
+		'spec'		=> 'formName=s',
+		'help'		=> "--formName : name of form\n",
+		'required'	=> 0);
+
+	$plugin->add_arg(
+		'spec'		=> 'logout|o=s',
+		'help'		=> "--logout -o\n",
+		'required'	=> 0);
+
+
+	# .htaccess AUTHENTICATION PARAMETERS
+#	'[hostName]:80',	# No leading 'http://', but final ':80' seems to be mandatory
+#	'[realm]',			# htaccess login window title
+#	'[login]',
+#	'[password]'
+	$plugin->add_arg(
+		'spec'		=> 'htPrompt=s',
+		'help'		=> "--htPrompt : server message for .htaccess authentication\n",
+		'required'	=> 0);
+
+	$plugin->add_arg(
+		'spec'		=> 'htUser=s',
+		'help'		=> "--htUser : login for .htaccess authentication\n",
+		'required'	=> 0);
+
+	$plugin->add_arg(
+		'spec'		=> 'htPassword=s',
+		'help'		=> "--htPassword : password for .htaccess authentication\n",
+		'required'	=> 0);
+	# /.htaccess AUTHENTICATION PARAMETERS
+
+	$plugin->add_arg(
+		'spec'		=> 'debug|D',
+		'help'		=> '--debug',
+		'required'	=> 0,
+		'default'	=> 0);
+
+
+	###################################### ##########################################################
+	# Retrieving cmd line arguments
+	###################################### ##########################################################
+	$plugin->getopts;
+	$Nenm::Utils::DEBUG = $plugin->opts->get('debug');
+
+
+	my $httpProxy=$plugin->opts->get('http_proxy');
+
+	#use proxy only if one was declared. The cmd line option "--http_proxy 0" means "no proxy".
+	if($httpProxy ne '0') {
+		$plugin->mech->proxy(['http', 'ftp'], "$httpProxy");
+		#my $httpProxyUsername=$plugin->opts->get('http_proxy_username');
+		#my $httpProxyPassword=$plugin->opts->get('http_proxy_password');
+		}
+
+	my $url = $plugin->opts->get('url');
+	$plugin->nagios_die('No URL to check.') unless $url;
+
+	my $warn = $plugin->opts->get('warning');
+	my $crit = $plugin->opts->get('critical');
+
+	my $noWarnMode=0;
+
+	if(($warn>0)&&($crit>0)) { # normal mode
+		$plugin->nagios_die('Missing warning threshold!')	unless $warn;
+		$plugin->nagios_die('Missing critical threshold!')	unless $crit;
+		if($warn > $crit) { $plugin->nagios_die('Error : warning threshold is greater than critical threshold.'); }
+		}
+	else { # "OK - NO WARN" mode
+		$noWarnMode=1;
+		}
+
+	my $formMode	= $plugin->opts->get('formMode');
+	my $matchString	= $plugin->opts->get('match');
+	$plugin->nagios_die('No matchstring specified.') unless $matchString;
+
+	my $htPrompt	= $plugin->opts->get('htPrompt');
+	my $htUser		= $plugin->opts->get('htUser');
+	my $htPassword	= $plugin->opts->get('htPassword');
+
+	Nenm::Utils::debug('URL             : '.$url);
+	Nenm::Utils::debug('String to match : '.$matchString);
+	Nenm::Utils::debug('HTTP proxy      : '.$httpProxy);
+
+	###################################### ##########################################################
+	# Perform htaccess authentication if parameters are provided
+	# source : http://www.perlmonks.org/index.pl?node_id=414329
+	###################################### ##########################################################
+	if((defined($htPrompt))&&(length($htPrompt))&&(length($htUser))&&(length($htPassword))) {
+
+		# extracting domain name
+		$url =~ m/https?:\/\/([^\/]*)/;
+
+		$plugin->mech->credentials(
+			$1.':80',		# No leading 'http://', but final ':80' seems to be mandatory
+			$htPrompt,		# realm (htaccess login screen title)
+			$htUser,
+			$htPassword
+			);
+
+		Nenm::Utils::debug('htDomain       : '.$1);
+		Nenm::Utils::debug('htPrompt       : '.$htPrompt);
+		Nenm::Utils::debug('htUser         : '.$htUser);
+		Nenm::Utils::debug('htPassword     : '.$htPassword);
+		}
+	###################################### ##########################################################
+	# / htaccess authentication
+	###################################### ##########################################################
+
+
+# may be used later...
+#		Nenm::Utils::debug("HTTP user proxy :\t\t$ENV{HTTP_PROXY_USERNAME}");
+#		Nenm::Utils::debug("HTTP password proxy :\t\t$ENV{HTTP_PROXY_PASSWORD}");
+#		Nenm::Utils::debug("HTTPS proxy :\t\t\t$ENV{HTTPS_PROXY}");
+#		Nenm::Utils::debug("HTTPS user proxy :\t\t$ENV{HTTPS_PROXY_USERNAME}");
+#		Nenm::Utils::debug("HTTPS password proxy :\t$ENV{HTTPS_PROXY_PASSWORD}");
+
+
+
+	################################## ##########################################################
+	# Re-defining the callback function handling the 'SIGALRM' signal in case of timeout.
+	# $SIG{ALRM} is already defined in /usr/lib/perl5/site_perl/5.8.8/Nagios/Plugin/Getopt.pm, at line 430
+	# Details : http://perldoc.perl.org/functions/alarm.html
+	################################## ##########################################################
+	eval {
+		$SIG{ALRM} = sub {
+			$plugin->nagios_exit(UNKNOWN, 'Plugin timed out ( >'.TIMEOUT.'s )');
+			die "timed out\n";
+			};
+		};
+	################################## ##########################################################
+	# Without this 'eval' block, ePN complains that :
+	#	"Exittrap: 3 (Redefine exit to trap plugin exit with eval BLOCK)"
+	# ... so here it is ;-)
+	################################## ##########################################################
+
+	my $responseTime	= 0;
+	my %paramsCheck;
+
+	################################## ##########################################################
+	# page+form common mode
+	################################## ##########################################################
+	%paramsCheck=(
+		plugin		=> $plugin,
+		url			=> $url,
+		result		=> {
+			httpStatusCode	=> 0,
+			content			=> ''
+			}
+		);
+	$responseTime	= getUrl(\%paramsCheck);
+
+	Nenm::Utils::debug("Page response time : $responseTime ms");
+	Nenm::Utils::debug("Page response code : $paramsCheck{'result'}{'httpStatusCode'}");
+
+	################################## ##########################################################
+	# /page+form common mode
+	################################## ##########################################################
+
+
+	if($formMode eq 1) {
+		################################## ##########################################################
+		# form mode
+		################################## ##########################################################
+
+		# Retrieve cmd args to send form data.
+		my $formName			= $plugin->opts->get('formName');
+		my $formFieldsNames		= $plugin->opts->get('formFieldsNames');
+		my $formFieldsValues	= $plugin->opts->get('formFieldsValues');
+		Nenm::Utils::debug('formFieldsNames     : '.$formFieldsNames);
+		Nenm::Utils::debug('formFieldsValues    : '.$formFieldsValues);
+
+		my $commandLineParametersSeparator = '!';
+
+		my @listFormFields=split($commandLineParametersSeparator,$formFieldsNames);	# /!\ the splitting expression is a RegExp, "|" is a reserved character ;-)
+		my @listFormValues=split($commandLineParametersSeparator,$formFieldsValues);
+
+		%paramsCheck=(
+			plugin		=> $plugin,
+			url			=> $url,
+			formName	=> $formName,
+			formFieldsNames	=> \@listFormFields,
+			formFieldsValues	=> \@listFormValues,
+			result		=> {
+				httpStatusCode	=> 0,
+				content			=> ''
+				}
+			);
+
+		$responseTime	= getForm(\%paramsCheck);
+		Nenm::Utils::debug("Form response time : $responseTime ms");
+
+		################################## ##########################################################
+		# /form mode
+		################################## ##########################################################
+		}
+
+	# searching matchstring
+	my %paramsSearchingMatchstring = (
+		needle		=> $matchString,
+		haystack	=> $paramsCheck{'result'}{'content'}
+		);
+	if(matchstringFound(\%paramsSearchingMatchstring))	# Unix-style : 0=success
+		{ $plugin->nagios_die(CRITICAL, "Matchstring \"$matchString\" not found."); }
+
+
+
+	if(defined($plugin->opts->get('logout')))
+		{ get_logout($plugin, $plugin->opts->get('logout')); }
+
+
+	my $thresholds		= $plugin->set_thresholds(warning=>$warn, critical=>$crit);
+	my $output_label	= "$LABEL ";
+
+	$plugin->add_perfdata (
+		label		=> 'response time',
+		value		=> $responseTime,
+		uom			=> 'ms',
+		threshold	=> $thresholds
+		);
+	my $result = $plugin->check_threshold (
+		check		=> $responseTime,
+		warning		=> $warn,
+		critical	=> $crit
+		);
+
+# $paramsCheck{'result'}{'httpStatusCode'}
+	my $httpStatusMessage = '(HTTP code : '.$paramsCheck{'result'}{'httpStatusCode'}.') ';
+	if($noWarnMode eq 1) {
+		if($formMode eq 1) {	# mode = 'noWarn' + 'form'
+			$plugin->nagios_exit (OK, $httpStatusMessage.'NO WARN. Form "'.$url.'" OK');
+			}
+		else {	# mode = 'noWarn' + 'page'
+			$plugin->nagios_exit (OK, $httpStatusMessage.'NO WARN. Page "'.$url.'" available');
+			}
+		}
+	else {
+		if($formMode eq 1) {	# mode = 'normal' (warn) + 'form'
+			$plugin->nagios_exit ($result, $httpStatusMessage.'Form response time = '.$responseTime.'ms > warning time = '.$warn.'ms )') if $result eq WARNING;
+			$plugin->nagios_exit ($result, $httpStatusMessage.'Form response time = '.$responseTime.'ms > critical time = '.$crit.'ms )') if $result eq CRITICAL;
+			$plugin->nagios_exit (OK, $httpStatusMessage.'Form authentication OK');
+			}
+		else {	# mode = 'normal' (warn) + 'page'
+			$plugin->nagios_exit ($result, $httpStatusMessage.'Page response time = '.$responseTime.'ms > warning time = '.$warn.'ms )') if $result eq WARNING;
+			$plugin->nagios_exit ($result, $httpStatusMessage.'Page response time = '.$responseTime.'ms > critical time = '.$crit.'ms )') if $result eq CRITICAL;
+			$plugin->nagios_exit (OK, $httpStatusMessage.'Page check OK');
+			}
+		}
+	}
+
+
+########################################## ##########################################################
+# subs
+########################################## ##########################################################
+
+
+sub formatDuration {
+	my $duration=shift;
+	return sprintf("%.2f", $duration * 1000);
+	}
+
+
+sub matchstringFound {
+	(my $params)=@_;
+
+	if($$params{'haystack'} =~ $$params{'needle'})
+		{ # found
+		Nenm::Utils::debug('Matchstring "'.$$params{'needle'}.'" found.');
+		return 0;	# Unix-style : 0=success
+		}
+	else
+		{ # not found
+		Nenm::Utils::debug('Matchstring "'.$$params{'needle'}.'" NOT found.');
+		return 1;
+		}
+	}
+
+
+sub getForm {
+	(my $params)	= @_;
+	my $plugin		= $$params{'plugin'};
+
+	my @formFields	= @{$$params{'formFieldsNames'}};
+	my $formFields	= @formFields;	# length of list
+	my @formValues	= @{$$params{'formFieldsValues'}};
+
+	my %fields;
+	for(my $i=0;$i<$formFields;$i++)
+		{ $fields{$formFields[$i]}=$formValues[$i]; }
+
+	# DEBUG
+#	foreach my $fn (keys %fields)
+#		{ Nenm::Utils::debug("FORM FIELDS :\tName = ".$fn."\t, Value = ".$fields{$fn}); }
+	# /DEBUG
+
+	Nenm::Utils::debug('Submitting form ...');
+	my $timeStart	= gettimeofday();
+	$result			= $plugin->submit_form(
+		form_name	=> $$params{'formName'},
+		fields		=> \%fields
+		);
+
+	my $timeStop	= gettimeofday();
+
+	$$params{'result'}{'httpStatusCode'}	= $result->code;
+	$$params{'result'}{'content'}			= $plugin->content(format => 'text');
+	Nenm::Utils::debug('Form Submitted.');
+	Nenm::Utils::debug('HTTP CODE (form) : '.$$params{'result'}{'httpStatusCode'});
+	# DEBUG
+#	Nenm::Utils::debug($$params{'result'}{'content'});
+	# /DEBUG
+	return formatDuration($timeStop-$timeStart);
+	}
+
+
+sub getUrl {
+	(my $params)	= @_;
+
+	my $timeStart	= gettimeofday();
+	my $result		= $$params{'plugin'}->get($$params{'url'});	# Works with POST form too ;-)
+	# This follows 301 redirects.
+	# This automatically exits (and dumps output) if returned code != 200 :-(
+	my $timeStop	= gettimeofday();
+
+	$$params{'result'}{'httpStatusCode'}	= $result->code;
+	$$params{'result'}{'content'}			= $$params{'plugin'}->content(format => 'text');
+
+#	Nenm::Utils::debug('url              : '.$$params{'url'});
+#	Nenm::Utils::debug('content : '.$$params{'result'}{'content'});
+#	Nenm::Utils::debug('HTTP CODE (page) : '.$$params{'result'}{'httpStatusCode'});
+
+=cut
+
+#	if(grep { $_ eq $$params{'result'}{'httpStatusCode'} } @HTTP_STATUSCODES_OK)	# checking whether values exists in array
+#		{
+#		Nenm::Utils::debug('HTTP STATUS CODE : OK');
+#		}
+
+
+	foreach my $possibleStatus (keys( %listOfHttpStatusCodes))
+		{
+		print $possibleStatus.' '.$listOfHttpStatusCodes{$possibleStatus}[0]."\n";
+		if(valueExistsInArray({
+			'value'		=> $$params{'result'}{'httpStatusCode'},
+			'arrayName'	=> $listOfHttpStatusCodes{$possibleStatus}}
+			))
+			{
+				print 'FOUND!';
+			}
+		}
+
+=cut
+
+	return formatDuration($timeStop-$timeStart);
+	}
+
+=cut
+
+# params : hash with 'value' and 'arrayName'
+sub valueExistsInArray {
+	(my $params)	= @_;
+
+	if (grep { $_ eq $params['value'] } $params['arrayName'])
+		{ return 1; }
+	else
+		{ return 0; }
+	}
+
+=cut
+
+
+sub get_logout {
+	my $plugin	= shift;
+	my $logout	= shift;
+	Nenm::Utils::debug('Logging out ...');
+	$plugin->get( $logout );
+	return 1;
+	}
+
+
+########################################## ##########################################################
+# Now run !
+########################################## ##########################################################
+
+# uncomment the 'alarm ...;' line below to leave plugin on timeout
+# See also 'SIGALRM' above
+alarm TIMEOUT;
+exit main();
+
+########################################## ##########################################################
+# POD documentation
+########################################## ##########################################################
+
+=pod
+
+=head1 Synopsis
+
+=begin html
+
+<link rel="stylesheet" type="text/css" href="./plugins.css" />
+Plugin <span class="pluginName">check_web_proxy</span> : Send HTTP queries to web servers through direct connection / proxy and measure the response time.
+
+=end html
+
+
+
+
+=head1 Dependencies
+
+	use strict;
+
+	use Nagios::Plugin::WWW::Mechanize;
+	use Nenm::Utils;
+	use Time::Local;
+	use Time::HiRes;
+	use Time::HiRes qw(gettimeofday);
+
+
+
+
+=head1 Command line
+
+	[ basic ]
+		check_web_proxy -w [warn] -c [crit] --http_proxy 0 --formMode 0 --url "[http://www.example.com]" --match "[keyword]" --debug
+
+ 	[ basic + nowarn ]
+		check_web_proxy -w 0 -c 0 --http_proxy 0 --formMode 0 --url "[http://www.example.com]" --match "[keyword]" --debug
+
+	[ from (with POST) : WordPress login ]
+		check_web_proxy -w [warn] -c [crit] --http_proxy 0 --formMode 1 --url "[http://www.example.com/wp-login]" --formName "[loginform]" --match "[keyword]" --formFieldsNames="[log!pwd!redirect_to!testcookie!wp-submit]" --formFieldsValues="[userName!password!http://www.example.com/wp-admin/!1!Connect]" --debug
+
+	[ form (with POST) + nowarn ]
+		check_web_proxy -w 0 -c 0 --http_proxy 0 --formMode 1 --url "[http://www.example.com/wp-login]" --formName "[loginform]" --match "[keyword]" --formFieldsNames="[log!pwd!redirect_to!testcookie!wp-submit]" --formFieldsValues="[userName!password!http://www.example.com/wp-admin/!1!Connect]" --debug
+
+	[.htaccess authentication]
+		check_web_proxy -w 0 -c 0 --url "[http://www.example.com/]" --http_proxy 0 --match "[keyword]" --htPrompt "[htPrompt]" --htUser [htLogin] --htPassword [htPassword]
+
+	[ Output is not HTML ]
+		check_web_proxy -w [warn] -c [crit] --url "[http://www.example.com/]" --match "[keyword]" --http_proxy 0
+
+=over 4
+
+=item *
+
+-w, -c : warning and critical thresholds in milliseconds
+
+=item *
+
+--url : URL to open
+
+=item *
+
+--match : matchstring. String to find on the page specified with --url.
+
+=item *
+
+--http_proxy : Full URL + port of proxy to go through. "0" means "no proxy".
+
+=item *
+
+--htPrompt : [optional] server message prompr for .htaccess authentication.
+
+=item *
+
+--htUser : [optional] login for .htaccess authentication.
+
+=item *
+
+--htPassword : [optional] password for .htaccess authentication.
+
+=item *
+
+--debug : [optional] toggle the debug messages
+
+=back
+
+
+
+
+=head1 Output status
+
+=over 4
+
+=item *
+
+=begin html
+
+<span class="critical">CRITICAL</span> : when :
+	<ul>
+		<li>the HTTP status code != 200 (WWW-Mechanize forces a 'nagios_exit(CRITICAL)' unclean exit)</li>
+		<li>OR the matchstring has not been found on the specified URL</li>
+		<li>OR the response time > critical threshold</li>
+	</ul>
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="warning">WARNING</span> : when the warning threshold < response time < critical threshold.
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="ok">OK</span> when :
+	<ul>
+		<li>the response time < warning threshold</li>
+		<li>OR warning threshold == critical threshold == 0 ("NO WARN" mode)</li>
+	</ul>
+
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="unknown">UNKNOWN</span> : (never)
+
+=end html
+
+=back
+
+
+
+
+=head1 Perfdata
+
+=begin html
+
+<span class="perfdata">response time=[elapsed time]ms;[warning value];[critical value]</span>
+
+=end html
+
+
+
+
+=head1 Author
+
+Matthieu FOURNET (matthieu.fournet@orange.com)
+
+
+
+
+=cut
