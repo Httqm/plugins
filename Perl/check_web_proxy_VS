@@ -1,0 +1,715 @@
+#!/usr/bin/perl -w
+# nagios: +epn
+
+######################################### check_web_proxy_VS ########################################
+# FUNCTION :	Somewhat similar to the "check_web_proxy" : send HTTP queries to web servers through
+#				direct connection / proxy and measure the response time. It also queries a reference
+#				web page (usually Google) to identify network latency by subtracting the reference
+#				response time to the page response time.
+#				This plugin is designed mainly for graphs.
+#
+# AUTHOR :		Matthieu FOURNET (fournet.matthieu@gmail.com)
+# LICENSE :		GPL - http://www.fsf.org/licenses/gpl.txt
+#
+# NOTES :		1. See plugin 'check_web_proxy' for previous notes / limitations
+#				2. HTML form login can still be found in this plugin, but it's kept mainly for backward compatibility and may not been tested extensively.
+#
+# COMMAND LINE :
+#	[ DEBUG MODE ] 
+#		check_web_proxy_VS -w [warn] -c [crit] --url "[http://www.example.com]" --match "[keyword]" --refurl "[http://www.google.fr]" --refmatch "[Google]" --debug
+#
+#	[ NOWARN MODE ] 
+#		check_web_proxy_VS -w 0 -c 0 --url "[http://www.example.com]" --match "[keyword]" --refurl "[http://www.google.fr]" --refmatch "[Google]"
+#
+#	[ WITH --http_proxy PARAMETER ] (details expected!)
+#		check_web_proxy_VS -w [warn] -c [crit] --url "[http://www.example.com]" --match "[keyword]" --refurl "[http://www.google.fr]" --refmatch "[Google]" --http_proxy 0
+#
+# TODO :		no support yet for HTTP proxy user + pass, and for HTTPS proxy+user+pass
+#
+# VERSION :		20130501
+########################################## ##########################################################
+
+sub main {
+	use strict;
+
+	use Nagios::Plugin::WWW::Mechanize;
+	use Nenm::Utils;
+	use Time::Local;
+	use Time::HiRes;
+	use Time::HiRes qw(gettimeofday);
+
+	use constant TIMEOUT =>15;	# this value must be :
+								#	greater than the highest possible critical value ('-c xxx' arg)
+								#	AND less than the plugin timeout (defaulted to 10s in /etc/shinken/nagios.cfg )
+
+	my $LABEL = 'CHECK WEB';
+	my $USAGE = <<EOF;
+%s
+EOF
+
+# Customizing locales
+# source : http://perldoc.perl.org/perllocale.html#USING-LOCALES
+#use POSIX qw(locale_h);
+#setlocale(LC_ALL, 'fr_FR.utf8');	# current locale found in system shell with : 'locale -a'
+
+
+########################################## ##########################################################
+# NOTE : environment variables such as $ENV{HTTP_PROXY} are ignored
+#		 if they are declared after instantiating the Mechanize object (why?)
+########################################## ##########################################################
+
+	my $plugin = Nagios::Plugin::WWW::Mechanize->new(
+		'shortname'		=> $LABEL,
+		'usage'			=> $USAGE,
+		'include_time'	=> 0,
+		'timeout'		=> TIMEOUT	# this value is only used in the output string when leaving on timeout :
+									#	"CHECK_WEB_PROXY UNKNOWN - plugin timed out (timeout 5s)"
+		);
+
+
+	# PROXY SETTINGS
+	$plugin->add_arg(
+		'spec'		=> 'http_proxy=s',
+		'help'		=> '--http_proxy',
+		'required'	=> 0);
+
+	# THRESHOLDS
+	$plugin->add_arg(
+		'spec'		=> 'warning|w=s',
+		'help'		=> '--warning  -w',
+		'required'	=> 1);
+
+	$plugin->add_arg(
+		'spec'		=> 'critical|c=s',
+		'help'		=> '--critical -c',
+		'required'	=> 1);
+
+	# PAGE TO BE CHECKED
+	$plugin->add_arg(
+		'spec'		=> 'url=s',
+		'help'		=> '--url',
+		'required'	=> 1);
+
+	$plugin->add_arg(
+		'spec'		=> 'match=s',
+		'help'		=> '--match',
+		'required'	=> 1);
+
+	# REFERENCE PAGE
+	$plugin->add_arg(
+		'spec'		=> 'refurl=s',
+		'help'		=> '--refurl',
+		'required'	=> 1);
+
+	$plugin->add_arg(
+		'spec'		=> 'refmatch=s',
+		'help'		=> '--refmatch',
+		'required'	=> 1);
+
+	# HTML PAGE FORM PARAMETERS
+	$plugin->add_arg(
+		'spec'		=> 'noform=s',
+		'help'		=> '--noform=1|0',
+		'required'	=> 0,
+		'default'	=> '1'
+		);
+
+	$plugin->add_arg(
+		'spec'		=> 'user|u=s',
+		'help'		=> "--user, -u: user\n" .
+				  "				  user of form\n",
+		'required'	=> 0);
+
+	$plugin->add_arg(
+		'spec'		=> 'password|p=s',
+		'help'		=> "--password, -p: password\n" .
+				  "				  password for user of form\n",
+		'required'	=> 0);
+
+	$plugin->add_arg(
+		'spec'		=> 'button|b=s',
+		'help'		=> "--button, -b: button\n" .
+				  "				  button of form\n",
+		'required'	=> 0);
+
+	$plugin->add_arg(
+		'spec'		=> 'form|f=s',
+		'help'		=> "--form, -f: form\n" .
+				  "		   (optional) name of form\n",
+		'required'	=> 0);
+
+	$plugin->add_arg(
+		'spec'		=> 'fielduser=s',
+		'help'		=> "--fielduser: name of the form\n" .
+				  "		   (optional) name of user field\n",
+		'required'	=> 0);
+
+	$plugin->add_arg(
+		'spec'		=> 'fieldpassword=s',
+		'help'		=> "--fieldpassword:\n" .
+				  "		   (optional) name of password field\n",
+		'required'	=> 0);
+
+	$plugin->add_arg(
+		'spec'		=> 'logout|o=s',
+		'help'		=> "--logout -o\n",
+		'required'	=> 0);
+
+
+	# .htaccess AUTHENTICATION PARAMETERS
+#	'[hostName]:80',	# No leading 'http://', but final ':80' seems to be mandatory
+#	'[realm]',			# htaccess login window title
+#	'[login]',
+#	'[password]'
+	$plugin->add_arg(
+		'spec'		=> 'htprompt=s',
+		'help'		=> "--htprompt : server message for .htaccess authentication\n",
+		'required'	=> 0);
+
+	$plugin->add_arg(
+		'spec'		=> 'htuser=s',
+		'help'		=> "--htuser : login for .htaccess authentication\n",
+		'required'	=> 0);
+
+	$plugin->add_arg(
+		'spec'		=> 'htpassword=s',
+		'help'		=> "--htpassword : password for .htaccess authentication\n",
+		'required'	=> 0);
+	# /.htaccess AUTHENTICATION PARAMETERS
+
+	$plugin->add_arg(
+		'spec'		=> 'debug|D',
+		'help'		=> '--debug',
+		'required'	=> 0,
+		'default'	=> 0);
+
+
+	###################################### ##########################################################
+	# Retrieving cmd line arguments
+	###################################### ##########################################################
+	$plugin->getopts;
+	$Nenm::Utils::DEBUG = $plugin->opts->get('debug');
+
+
+	my $httpProxy=$plugin->opts->get('http_proxy');
+	if(!defined($httpProxy)) {$httpProxy=0;}
+	Nenm::Utils::debug(" --httpProxy : $httpProxy");
+
+	#use proxy only if one was declared. The cmd line option "--http_proxy 0" means "no proxy".
+	if($httpProxy ne '0') {
+		$plugin->mech->proxy(['http', 'ftp'], "$httpProxy");
+		#my $httpProxyUsername=$plugin->opts->get('http_proxy_username');
+		#my $httpProxyPassword=$plugin->opts->get('http_proxy_password');
+		}
+
+	my $pageUrl		= $plugin->opts->get('url');
+	my $match		= $plugin->opts->get('match');
+	Nenm::Utils::debug('URL            : '.$pageUrl);
+	$plugin->nagios_die('Missing URL of page to check.') unless $pageUrl;
+
+	my $refUrl		= $plugin->opts->get('refurl');
+	my $refMatch	= $plugin->opts->get('refmatch');
+	$plugin->nagios_die('Missing URL of reference page.') unless $refUrl;
+
+
+	my $warn = $plugin->opts->get('warning');
+	my $crit = $plugin->opts->get('critical');
+
+	my $noWarnMode=0;
+
+	if(($warn>0)&&($crit>0)) {
+		# normal mode
+		$plugin->nagios_die('Missing warning threshold!')	unless $warn;
+		$plugin->nagios_die('Missing critical threshold!')	unless $crit;
+		if($warn > $crit) { $plugin->nagios_die('Error : warning threshold is greater than critical threshold.'); }
+		}
+	else {
+		# "OK - NO WARN" mode
+		$noWarnMode=1;
+		}
+
+	our $NOFORM	= $plugin->opts->get('noform');
+	$plugin->nagios_die('Missing html title to match') unless $match;
+
+	my $htPrompt	= $plugin->opts->get('htprompt');
+	my $htUser		= $plugin->opts->get('htuser');
+	my $htPassword	= $plugin->opts->get('htpassword');
+
+	Nenm::Utils::debug('URL            : '.$pageUrl);
+	Nenm::Utils::debug('Matching title : '.$match);
+	Nenm::Utils::debug('HTTP proxy     : '.$httpProxy);
+
+	###################################### ##########################################################
+	# Perform htaccess authentication if parameters are provided
+	# source : http://www.perlmonks.org/index.pl?node_id=414329
+	###################################### ##########################################################
+	if((defined($htPrompt))&&(length($htPrompt))&&(length($htUser))&&(length($htPassword))) {
+
+		# extracting domain name
+		$pageUrl =~ m/https?:\/\/([^\/]*)/;
+
+		$plugin->mech->credentials(
+			$1.':80',	# No leading 'http://', but final ':80' seems to be mandatory
+			$htPrompt,	# realm (htaccess login screen title)
+			$htUser,
+			$htPassword
+			);
+
+		Nenm::Utils::debug('htDomain       : '.$1);
+		Nenm::Utils::debug('htPrompt       : '.$htPrompt);
+		Nenm::Utils::debug('htUSer         : '.$htUser);
+		Nenm::Utils::debug('htPassword     : '.$htPassword);
+		}
+	###################################### ##########################################################
+	# / htaccess authentication
+	###################################### ##########################################################
+
+
+# may be used later...
+#		Nenm::Utils::debug("HTTP user proxy :\t\t$ENV{HTTP_PROXY_USERNAME}");
+#		Nenm::Utils::debug("HTTP password proxy :\t\t$ENV{HTTP_PROXY_PASSWORD}");
+#		Nenm::Utils::debug("HTTPS proxy :\t\t\t$ENV{HTTPS_PROXY}");
+#		Nenm::Utils::debug("HTTPS user proxy :\t\t$ENV{HTTPS_PROXY_USERNAME}");
+#		Nenm::Utils::debug("HTTPS password proxy :\t$ENV{HTTPS_PROXY_PASSWORD}");
+
+	# On recupere les variables des formulaires si on doit envoyer un formulaire
+	our($NAMEFIELD, $PWDFIELD, $USER, $PWD, $FORM, $BUTTON) = qw{};
+	if($NOFORM eq 0) {
+		$NAMEFIELD	= ((defined($plugin->opts->get('fielduser')))		? $plugin->opts->get('fielduser')		: 'username'	);
+		$PWDFIELD	= ((defined($plugin->opts->get('fieldpassword')))	? $plugin->opts->get('fieldpassword')	: 'password'	);
+		$USER		= ((defined($plugin->opts->get('user')))			? $plugin->opts->get('user')			: ''			);
+		$PWD		= ((defined($plugin->opts->get('password')))		? $plugin->opts->get('password')		: ''			);
+		$FORM		= ((defined($plugin->opts->get('form')))			? $plugin->opts->get('form')			: 'loginform'	);
+		$BUTTON		= ((defined($plugin->opts->get('button')))			? $plugin->opts->get('button')			: 'submit'		);
+		Nenm::Utils::debug('fielduser     : '.$NAMEFIELD);
+		Nenm::Utils::debug('fieldpassword : '.$PWDFIELD);
+		Nenm::Utils::debug('user          : '.$USER);
+		Nenm::Utils::debug('password      : '.$PWD);
+		Nenm::Utils::debug('form          : '.$FORM);
+		Nenm::Utils::debug('button        : '.$BUTTON);
+		}
+
+
+
+	################################## ##########################################################
+	# Re-defining the callback function handling the 'SIGALRM' signal in case of timeout.
+	# $SIG{ALRM} is already defined in /usr/lib/perl5/site_perl/5.8.8/Nagios/Plugin/Getopt.pm, at line 430
+	# Details : http://perldoc.perl.org/functions/alarm.html
+	################################## ##########################################################
+	eval {
+		$SIG{ALRM} = sub {
+			$plugin->nagios_exit(UNKNOWN, 'Plugin timed out ( >'.TIMEOUT.'s )');
+			die "timed out\n";
+			};
+		};
+	################################## ##########################################################
+	# Without this 'eval' block, ePN complains that :
+	#	"Exittrap: 3 (Redefine exit to trap plugin exit with eval BLOCK)"
+	# ... so here it is ;-)
+	################################## ##########################################################
+
+	my %times	=(
+		checkPage	=> 0,
+		refPage		=> 0
+		);
+
+	my %paramsRefPage=(
+		plugin		=> $plugin,
+		url			=> $refUrl,
+		matchString	=> $refMatch
+		);
+
+	my %paramsCheckPage=(
+		plugin		=> $plugin,
+		url			=> $pageUrl,
+		matchString	=> $match,
+		);
+
+	$times{'refPage'}	= getPage(\%paramsRefPage);
+	$times{'checkPage'}	= getPage(\%paramsCheckPage);
+	my $diffTime		= $times{'checkPage'}-$times{'refPage'};
+
+	Nenm::Utils::debug("REFERENCE : $times{'refPage'},\t CHECK : $times{'checkPage'},\t DIFF : $diffTime");
+
+
+
+	my ($warnRangeWithNegatives, $critRangeWithNegatives)=("~:$warn", "~:$crit");	# include negative values in range
+
+	my $thresholds		= $plugin->set_thresholds(warning=>$warn, critical=>$crit);
+	my $output_label	= "$LABEL ";
+
+
+	if($noWarnMode eq 1) { # No thresholds in "noWarn" mode
+		$plugin->add_perfdata (
+			label		=> 'diffTime',
+			value		=> $diffTime,
+			uom			=> 'ms',
+			);
+		}
+	else {
+		$plugin->add_perfdata (
+			label		=> 'diffTime',
+			value		=> $diffTime,
+			uom			=> 'ms',
+			threshold	=> $thresholds	# this defines where thresholds will appear in PNP
+			);
+		}
+
+	$plugin->add_perfdata (
+		label		=> 'pageTime',
+		value		=> $times{'checkPage'},
+		uom			=> 'ms'
+		);
+
+	$plugin->add_perfdata (
+		label		=> 'refTime',
+		value		=> $times{'refPage'},
+		uom			=> 'ms'
+		);
+
+	my $result = $plugin->check_threshold (
+		check		=> $diffTime,
+		warning		=> $warnRangeWithNegatives,
+		critical	=> $critRangeWithNegatives
+		);
+
+
+	if($noWarnMode eq 1) {
+		if($NOFORM eq 0) {	# mode = 'noWarn' + 'form'
+			$plugin->nagios_exit (OK, 'NO WARN. Page + form OK.');
+			}
+		else {	# mode = 'noWarn' + 'noform'
+			$plugin->nagios_exit (OK, 'NO WARN. Page "'.$pageUrl.'" available.');
+			}
+		}
+	else {
+		if($NOFORM eq 0) {	# mode = 'normal' (warn) + 'form'
+			$plugin->nagios_exit ($result, 'Page + form (total time = '.$diffTime.'ms > warning time = '.$warn.'ms )') if $result eq WARNING;
+			$plugin->nagios_exit ($result, 'Page + form (total time = '.$diffTime.'ms > critical time = '.$crit.'ms )') if $result eq CRITICAL;
+			$plugin->nagios_exit (OK, 'Authentication OK');
+			}
+		else {	# mode = 'normal' (warn) + 'noform'
+			$plugin->nagios_exit ($result, 'Duration (total time = '.$diffTime.'ms > warning time = '.$warn.'ms )') if $result eq WARNING;
+			$plugin->nagios_exit ($result, 'Duration (total time = '.$diffTime.'ms > critical time = '.$crit.'ms )') if $result eq CRITICAL;
+			$plugin->nagios_exit (OK, 'Page check OK');
+			}
+		}
+
+
+	########################################## ##########################################################
+	# subs
+	########################################## ##########################################################
+
+	sub getPage
+		{
+		(my $params2)=@_;
+
+		my $plugin	= $$params2{'plugin'};
+		my $pageUrl	= $$params2{'url'};
+		my $match	= $$params2{'matchString'};
+
+		my $totaltime		= 0;
+		my $diffTimeGet		= 0;
+		my $diffTimeForm	= 0;
+
+		# Getting page
+		$diffTimeGet	= getUrl($plugin, $pageUrl);
+		my $content		= $plugin->content(format => 'text') || '';	# '$content' gets an empty string if $plugin->content(...) fails
+
+
+
+		my $contentType	= $plugin->mech->content_type();
+
+=cut
+
+die('CONTENT TYPE : '.$contentType);
+# PNG : image/png
+# HTML : text/html
+
+=cut
+
+	if($contentType eq 'text/html') {
+		# text/html
+		
+		}
+	elsif(($contentType eq 'image/png')) {
+
+		}
+# ou simplement tester égalité content attendu / reçu ?
+
+
+=cut
+
+# DISABLED HTML CHECK (BADNESS=42 !)
+
+	Nenm::Utils::debug('Content : '.$content);
+	if ($content !~ m{\<title\>}xims)
+		{ $plugin->nagios_die(CRITICAL, 'Error while checking page. (Is it HTML ?)'); }
+
+=cut
+
+
+		# Submit form then get page
+		if($NOFORM eq 0) {
+			$diffTimeForm	= get_form($plugin, $NAMEFIELD, $PWDFIELD, $USER, $PWD, $FORM, $BUTTON);
+			$content		=  $plugin->content(format => 'text');
+			Nenm::Utils::debug('Content AFTER FORM: '.$content);
+			if ($content !~ m{\<title\>}xmis)
+				{ $plugin->nagios_die(CRITICAL, 'Error while sending form.'); }
+			}
+
+		$totaltime	= $diffTimeGet + $diffTimeForm;
+		$totaltime	= sprintf("%0.2f", $totaltime);
+
+		# On match le titre de la page par rapport a l'option passée
+		if ($content !~ $match )
+			{ # no match found :(
+			if($NOFORM eq 0)
+				{ $plugin->nagios_die(CRITICAL, 'Authentication failed.'); }
+			else
+				{ $plugin->nagios_die(CRITICAL, 'String "'.$match.'" not found.'); }
+			}
+		if(defined($plugin->opts->get('logout'))) {
+			# On envoie une requete http pour se deconnecter
+			get_logout($plugin, $plugin->opts->get('logout'));
+			}
+
+		return $totaltime;
+		# END OF sub getPage
+		}
+
+
+
+	sub getUrl {
+		my $plugin	= shift;
+		my $anyUrl	= shift;
+
+		Nenm::Utils::debug('Getting URL "'.$anyUrl.'"');
+		my $timeStartGet = gettimeofday();
+		Nenm::Utils::debug('Start Get Time : '.$timeStartGet);
+
+		# when ->get(URL) fails the module calls nagios_exit(CRITICAL) without giving you a choice to do anything with the failure.
+		# source1 : http://www.pplusdomain.net/cgi-bin/blosxom.cgi/2010/05/20
+		# source2 : http://search.cpan.org/~tonvoon/Nagios-Plugin-WWW-Mechanize-0.13/lib/Nagios/Plugin/WWW/Mechanize.pm
+		# Looks like encoding f**ks things up :-/
+		my $r=$plugin->get($anyUrl);
+
+		Nenm::Utils::debug('HTTP CODE : '.$r->code);
+		Nenm::Utils::debug('Page received ...');
+
+		my $timeEndGet = gettimeofday();
+		Nenm::Utils::debug('End Get Time : '.$timeEndGet);
+		my $difftime = sprintf("%.2f", ($timeEndGet - $timeStartGet) *1000);
+		Nenm::Utils::debug('Get Duration = '.$difftime.'ms');
+
+		return $difftime;
+		}
+
+	sub get_form {
+		my $plugin		= shift;
+		my $userfield	= shift;
+		my $pwdfield	= shift;
+		my $user		= shift;
+		my $password	= shift;
+		my $form		= shift;
+		my $button		= shift;
+		Nenm::Utils::debug('Loging in ...');
+		my $timeStartForm = gettimeofday();
+		Nenm::Utils::debug('Start Form Time : '.$timeStartForm);
+		$plugin->submit_form(
+			form_name => $form,
+			fields => {
+				$userfield	=> $user,
+				$pwdfield	=> $password,
+				},
+# 15/07/2011 : commented the line below
+#			button => $button
+			);
+		Nenm::Utils::debug('Form Submitted ...');
+
+		my $timeEndForm = gettimeofday();
+		Nenm::Utils::debug('End Form Time : '.$timeEndForm);
+		my $difftime = sprintf("%.2f", ($timeEndForm - $timeStartForm) * 1000);
+		Nenm::Utils::debug('Form Duration = '.$difftime.'ms');
+
+		return $difftime;
+		}
+
+	sub get_logout
+		{
+		my $plugin	= shift;
+		my $logout	= shift;
+		Nenm::Utils::debug('Logging out ...');
+		$plugin->get( $logout );
+		return 1;
+		}
+	}
+
+
+########################################## ##########################################################
+# Now run !
+########################################## ##########################################################
+
+# uncomment the 'alarm ...;' line below to leave plugin on timeout
+# See also 'SIGALRM' above
+alarm TIMEOUT;
+exit main();
+
+########################################## ##########################################################
+# POD documentation
+########################################## ##########################################################
+
+=pod
+
+=head1 Synopsis
+
+=begin html
+
+<link rel="stylesheet" type="text/css" href="./plugins.css" />
+Plugin <span class="pluginName">check_web_proxy_VS</span> : Somewhat similar to <span class="pluginName">check_web_proxy</span> : send HTTP queries to web servers through direct connection / proxy and measure the response time. It also queries a reference web page (usually Google) to identify network latency by substracting the reference response time to the page response time. This plugin is designed mainly for graphs.
+
+=end html
+
+
+
+
+=head1 Dependencies
+
+	use strict;
+
+	use Nagios::Plugin::WWW::Mechanize;
+	use Nenm::Utils;
+	use Time::Local;
+	use Time::HiRes;
+	use Time::HiRes qw(gettimeofday);
+
+
+
+
+=head1 Command line
+
+	[ DEBUG MODE ] 
+		check_web_proxy_VS -w [warn] -c [crit] --url "[http://www.example.com]" --match "[keyword]" --refurl "[http://www.google.fr]" --refmatch "[Google]" --debug
+
+	[ NOWARN MODE ] 
+		check_web_proxy_VS -w 0 -c 0 --url "[http://www.example.com]" --match "[keyword]" --refurl "[http://www.google.fr]" --refmatch "[Google]"
+
+	[ WITH --http_proxy PARAMETER ] (details expected!)
+		check_web_proxy_VS -w [warn] -c [crit] --url "[http://www.example.com]" --match "[keyword]" --refurl "[http://www.google.fr]" --refmatch "[Google]" --http_proxy 0
+
+=over 4
+
+=item *
+
+-w, -c : warning and critical thresholds in milliseconds. If both are set to 0, the plugin goes into "NOWARN" mode (ie : status code is always OK whatever the response time).
+
+=item *
+
+--url : URL to open
+
+=item *
+
+--match : matchstring. String to find on the page specified with --url.
+
+=item *
+
+--refurl : URL of reference page (usually www.google.fr)
+
+=item *
+
+--refmatch : String to find on the page specified with --refurl.
+
+=item *
+
+--debug : [optional] toggle the debug messages
+
+=item *
+
+--http_proxy : [optional] Full URL + port of proxy to go through. "0" means "no proxy".
+
+=item *
+
+--htprompt : [optional] server message prompt for .htaccess authentication.
+
+=item *
+
+--htuser : [optional] login for .htaccess authentication.
+
+=item *
+
+--htpassword : [optional] password for .htaccess authentication.
+
+=back
+
+
+
+
+=head1 Output status (tbd)
+
+=over 4
+
+=item *
+
+=begin html
+
+<span class="critical">CRITICAL</span> : when :
+	<ul>
+		<li>the matchstring has not been found on the specified URL</li>
+		<li>OR the response time > critical threshold</li>
+	</ul>
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="warning">WARNING</span> : when the warning threshold < response time < critical threshold.
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="ok">OK</span> when :
+	<ul>
+		<li>the response time < warning threshold</li>
+		<li>OR warning threshold == critical threshold == 0 ("NO WARN" mode)</li>
+	</ul>
+
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="unknown">UNKNOWN</span> : (never)
+
+=end html
+
+=back
+
+
+
+
+=head1 Perfdata
+
+=begin html
+
+<span class="perfdata">diffTime=[diff time]ms;; pageTime=[page time]ms;[warn];[crit] refTime=[ref time]ms;;</span>
+
+=end html
+
+
+
+
+=head1 Author
+
+Matthieu FOURNET (matthieu.fournet@orange.com)
+
+
+
+
+=cut
