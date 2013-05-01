@@ -1,0 +1,236 @@
+#!/usr/bin/perl -w
+# nagios: +epn
+
+######################################### check_tcp #################################################
+# FUNCTION :	Open a connection on the specified "host:TCP_port", measure the process duration
+#				and alert accordingly.
+#
+# AUTHOR :		Matthieu FOURNET (fournet.matthieu@gmail.com)
+# LICENSE :		GPL - http://www.fsf.org/licenses/gpl.txt
+#
+# NOTES :		1. This can only be used on a LAN, without proxy/gateway/router,
+#					otherwise sockets are opened on the inbetweeners, not on the target.
+#				2. Source : http://www.perlfect.com/articles/sockets.shtml
+#
+# COMMAND LINE :
+#				check_tcp -H <hostName> -p <tcpPort> -w <warn> -c <crit> --debug
+#				/!\ warning and critical thresholds are in seconds
+#
+# VERSION :		20130501
+########################################## ##########################################################
+
+sub main
+	{
+	use strict;
+	use Nagios::Plugin;
+	use Nenm::Utils;
+	use IO::Socket;
+	use Time::HiRes qw(gettimeofday);
+	# http://perldoc.perl.org/Time/HiRes.html
+	# Returns time in seconds
+
+	use constant TIMEOUT => 5;
+
+	my $LABEL = 'CHECK TCP';
+	my $USAGE = '';
+
+	my $plugin = Nagios::Plugin->new( 'shortname' => $LABEL, 'usage'=>$USAGE );
+
+	$plugin->add_arg(
+		spec		=> 'hostname|H=s',
+		help		=> '--hostname, -H : IP address of host to (try to) connect to',
+		required	=> 1
+		);
+
+	$plugin->add_arg(
+		spec		=> 'port|p=i',
+		help		=> '--port, -p : TCP port to (try to) connect to',
+		required	=> 1
+		);
+
+	$plugin->add_arg(
+		spec		=> 'warn|w=f',
+		help		=> '--warn, -w : warning threshold [s]',
+		required	=> 1
+		);
+
+	$plugin->add_arg(
+		spec		=> 'crit|c=f',
+		help		=> '--crit, -c : critical threshold [s]',
+		required	=> 1
+		);
+
+	$plugin->add_arg(
+		spec		=> 'debug',
+		help		=> '--debug : toggle debug messages',
+		required	=> 0
+		);
+
+	$plugin->getopts;
+	my $hostName	= $plugin->opts->get('hostname');
+	my $port		= $plugin->opts->get('port');
+	my $WARN		= $plugin->opts->get('warn');
+	my $CRIT		= $plugin->opts->get('crit');
+	my $debug		= $plugin->opts->get('debug');
+
+	# hack to be able to specify the 'debug' option from the command line
+	$Nenm::Utils::DEBUG=0;
+	if(defined($debug))
+		{ $Nenm::Utils::DEBUG=$debug; }
+
+	Nenm::Utils::debug('hostName	: '.$hostName);
+	Nenm::Utils::debug('port		: '.$port);
+
+	my $timeStart = gettimeofday();
+
+	my $socket = new IO::Socket::INET (
+		PeerAddr	=> $hostName,
+		PeerPort	=> $port,
+		Proto		=> 'tcp',
+		Timeout	=> TIMEOUT
+		)
+	or $plugin->nagios_exit (UNKNOWN, "Could not create socket to $hostName:$port");
+#	$plugin->nagios_exit (UNKNOWN,	"Could not create socket to $hostName:$port") unless $socket;
+
+	my $duration = sprintf("%.3f", gettimeofday() - $timeStart);
+	Nenm::Utils::debug('Socket is up ! Creation duration : '.$duration);
+
+	close($socket);
+
+	####################################
+	# threshold + return
+	####################################
+	my $thresholds	= $plugin->set_thresholds(warning=>$WARN, critical=>$CRIT);
+
+	$plugin->add_perfdata (
+		label		=> 'Response time',
+		value		=> $duration,
+		uom		=> 's',
+		threshold	=> $thresholds
+		);
+
+	my $result = $plugin->check_threshold (
+		check		=> $duration,
+		warning	=> $WARN,
+		critical	=> $CRIT
+		);
+
+	$plugin->nagios_exit ($result, 'Response time : '.$duration.'s > '.$CRIT.'s') if $result eq CRITICAL;
+	$plugin->nagios_exit ($result, 'Response time : '.$duration.'s > '.$WARN.'s') if $result eq WARNING;
+	$plugin->nagios_exit ($result, 'Response time : '.$duration.'s');
+	}
+
+exit main();
+
+########################################## ##########################################################
+# POD
+########################################## ##########################################################
+
+=pod
+
+=head1 Synopsis
+
+=begin html
+
+<link rel="stylesheet" type="text/css" href="./plugins.css" />
+Plugin <span class="pluginName">check_tcp</span> : (Try to) open a connection to a socket through <a href="http://perldoc.perl.org/IO/Socket.html">IO::Socket</a>, and measure the response time.
+
+=end html
+
+
+
+
+=head1 Dependencies
+
+	use strict;
+	use Nagios::Plugin;
+	use Nenm::Utils;
+	use IO::Socket;
+	use Time::HiRes qw(gettimeofday);
+
+
+
+
+=head1 Command line
+
+	check_tcp -H 12.15.44.21 -p 25 -w 2 -c 4 --debug
+
+=over 4
+
+=item *
+
+-H : IP address of host to (try to) connect to.
+
+=item *
+
+-p : port to (try to) connect to.
+
+=item *
+
+-w, -c : warning, critical thresholds in seconds
+
+=back
+
+
+
+
+=head1 Output status
+
+=over 4
+
+=item *
+
+=begin html
+
+<span class="critical">CRITICAL</span> : when the socket opening duration > critical threshold.
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="warning">WARNING</span> : when warning threshold < socket opening duration < critical threshold.
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="ok">OK</span> : when socket opening duration < warning threshold.
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="unknown">UNKNOWN</span> : when it is not possible to open a socket to the specified host and port.
+
+=end html
+
+=back
+
+
+
+
+=head1 Perfdata
+
+=begin html
+
+<span class="perfdata">Response time=[duration]s;[warning value];[critical value]</span>
+
+=end html
+
+
+
+
+=head1 Author
+
+Matthieu FOURNET (fournet.matthieu@gmail.com)
+
+
+
+
+=cut
