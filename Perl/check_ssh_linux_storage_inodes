@@ -1,0 +1,339 @@
+#!/usr/bin/perl -w
+# nagios: +epn
+
+######################################### check_ssh_linux_storage_inodes ############################
+# FUNCTION :
+#
+# AUTHOR :		Matthieu FOURNET (matthieu.fournet@orange.com)
+# LICENSE :		GPL - http://www.fsf.org/licenses/gpl.txt
+#
+# NOTES :		warn/crit levels + perfdata are based exclusively on usage %, not usage number
+#
+# COMMAND LINE :
+#	check_ssh_linux_storage_inodes --host=[host] --login="[userName]" --filesystem="[filesystem]" -w [warn] -c [crit] --debug
+#
+# VERSION :		20130501
+########################################## ##########################################################
+
+########################################## ##########################################################
+# main()
+########################################## ##########################################################
+sub main {
+	use strict;
+	use Nagios::Plugin;
+	use Nenm::Utils;
+
+	my $LABEL	= 'CHECK LINUX STORAGE AND INODES';
+	my $USAGE	= <<EOF;
+%s
+EOF
+
+	my $plugin	= Nagios::Plugin->new( 'shortname' => $LABEL, 'usage' => $USAGE );
+
+	# Was said to be declared automatically by Nagios::Plugin (?)
+	# http://search.cpan.org/~tonvoon/Nagios-Plugin-0.35/lib/Nagios/Plugin.pm#SYNOPSIS
+	$plugin->add_arg(
+		spec		=> 'host|H=s',
+		help		=> '-H, --host = IP address or name of host having some storage to check',
+		required	=> 1
+		);
+
+	$plugin->add_arg(
+		spec		=> 'login|l=s',
+		help		=> '-l, --login = SSH login to host having some storage to check',
+		required	=> 1
+		);
+
+	$plugin->add_arg(
+		spec		=> 'filesystem|f=s',
+		help		=> '-f, --filesystem = Filesystem to check',
+		required	=> 1
+		);
+
+	# '-w' and '-c' are not default parameters for Nagios::Plugin (???)
+	$plugin->add_arg(
+		spec		=> 'warning|w=i',
+		help		=> '-w, --warning = Usage % warning threshold',
+		required	=> 1
+		);
+
+	$plugin->add_arg(
+		spec		=> 'critical|c=i',
+		help		=> '-c, --critical = Usage % critical threshold',
+		required	=> 1
+		);
+
+	$plugin->add_arg(
+		spec		=> 'debug',
+		help		=> '--debug : toggle debug messages',
+		required	=> 0
+		);
+
+	$plugin->getopts();
+	my $host		= $plugin->opts->get('host');
+	my $sshLogin	= $plugin->opts->get('login');
+	my $warn		= $plugin->opts->get('warning');
+	my $crit		= $plugin->opts->get('critical');
+	my $filesystem	= $plugin->opts->get('filesystem');
+	my $debug		= $plugin->opts->get('debug');
+
+	# hack to be able to specify the 'debug' option from the command line
+	$Nenm::Utils::DEBUG=0;
+	if(defined($debug))
+		{ $Nenm::Utils::DEBUG=$debug; }
+
+	$plugin->nagios_die('WARNING threshold must be less than CRITICAL threshold !') unless $warn<$crit;
+
+	my %fsData=
+		(
+		host		=> $host,
+		sshLogin	=> $sshLogin,
+		target		=> 'bytes',
+		name		=> $filesystem,
+		bytes	=> {
+			total		=> 0,
+			used		=> 0,
+			available	=> 0,
+			usedPercent	=> 0
+			},
+		inodes	=> {
+			total		=> 0,
+			used		=> 0,
+			available	=> 0,
+			usedPercent	=> 0
+			},
+		);
+
+	# retrieving filesystem usage (bytes)
+	if(getFsData(\%fsData))
+		{ $plugin->nagios_die("Error while retrieving \"$filesystem\" byte data."); }
+
+	# retrieving filesystem usage (inodes)
+	$fsData{'target'}='inodes';
+	if(getFsData(\%fsData))
+		{ $plugin->nagios_die("Error while retrieving \"$filesystem\" inode data."); }
+
+	Nenm::Utils::debug('FS name             : '.$fsData{'name'});
+
+	Nenm::Utils::debug('Total Bytes         : '.$fsData{'bytes'}{'total'});
+	Nenm::Utils::debug('Used Bytes          : '.$fsData{'bytes'}{'used'});
+	Nenm::Utils::debug('Available Bytes     : '.$fsData{'bytes'}{'available'});
+	Nenm::Utils::debug('Used Bytes Percent  : '.$fsData{'bytes'}{'usedPercent'});
+
+	Nenm::Utils::debug('Total Inodes        : '.$fsData{'inodes'}{'total'});
+	Nenm::Utils::debug('Used Inodes         : '.$fsData{'inodes'}{'used'});
+	Nenm::Utils::debug('Available Inodes    : '.$fsData{'inodes'}{'available'});
+	Nenm::Utils::debug('Used Inodes Percent : '.$fsData{'inodes'}{'usedPercent'});
+
+	# 1 threshold to compare both bytes usage percent and inodes usage percent.
+	my $biggest=($fsData{'bytes'}{'usedPercent'} >= $fsData{'inodes'}{'usedPercent'}) ? 'bytes' : 'inodes';
+
+	my $thresholdBytesPercent	= $plugin->set_thresholds(warning=>$warn, critical=>$crit, min=>0, max=>100);
+	my $thresholdInodesPercent	= $plugin->set_thresholds(warning=>$warn, critical=>$crit, min=>0, max=>100);
+
+	my $output_label = "$LABEL ";
+
+	$plugin->add_perfdata (
+		label		=> 'used_bytes',
+		value		=> $fsData{'bytes'}{'usedPercent'},
+		uom			=> '%',
+		threshold	=> $thresholdBytesPercent
+		);
+
+	$plugin->add_perfdata (
+		label		=> 'used_inodes',
+		value		=> $fsData{'inodes'}{'usedPercent'},
+		uom			=> '%',
+		threshold	=> $thresholdInodesPercent
+		);
+
+	my $result = $plugin->check_threshold (
+		check		=> $fsData{$biggest}{'usedPercent'},
+		warning		=> $warn,
+		critical	=> $crit
+		);
+
+	my $outputMessage="Filesystem \"$filesystem\" usage : ";
+	$plugin->nagios_exit ($result,	$outputMessage."$warn% < $biggest ($fsData{$biggest}{'usedPercent'}%) < $crit%") if $result eq WARNING;
+	$plugin->nagios_exit ($result,	$outputMessage."$biggest ($fsData{$biggest}{'usedPercent'}%) > $crit %") if $result eq CRITICAL;
+	$plugin->nagios_exit ($result,	$outputMessage."bytes usage ($fsData{'bytes'}{'usedPercent'}%) and inodes usage ($fsData{'inodes'}{'usedPercent'}%) < $warn %");
+	}
+
+########################################## ##########################################################
+# Now run !
+########################################## ##########################################################
+exit main();
+
+
+########################################## ##########################################################
+# SUBS
+########################################## ##########################################################
+sub getFsData {
+	(my $params) = @_;
+
+	# detect localhost to run commands without using SSH
+	my $localHostname = `hostname`;
+	chop $localHostname;
+
+	my($command, $closing);
+
+	if(($$params{'host'} eq 'localhost') or ($$params{'host'} eq '127.0.0.1') or ($$params{'host'} eq $localHostname))
+		{ # Local host
+		($command,$closing)=('df -P ','');
+		}
+	else
+		{ # Remote host
+		($command, $closing) = ("ssh $$params{'sshLogin'}\@$$params{'host'} \"df -P ", '"');
+		# the '-P' flag allows output to be on a single line, even though the storage device name is long :
+		# Sys. de fichiers    Taille  Uti. Disp. Uti% Monté sur
+		# 123.123.123.123:/path/to/volume/exported/via/nfs/
+		#                       1,3T  539G  782G  41% /mnt/temp
+		}
+
+	# Prepare "df" command for "disk space usage" or "inodes usage"
+	if($$params{'target'} eq 'bytes')
+		{ $command .= '--block-size=1'; }
+	elsif($$params{'target'} eq 'inodes')
+		{ $command .= '-i'; }
+	else
+		{ return 1; }
+
+	$command.=" $$params{'name'} | tail -n 1 $closing";
+	Nenm::Utils::debug('command : '.$command);
+	my $result = `$command`;	# http://www.perlhowto.com/executing_external_commands
+	Nenm::Utils::debug('Result : '.$result);
+
+	# Making sure the result looks like "/dev/sda2             127744    5339  122405    5% /"
+	# http://www.troubleshooters.com/codecorn/littperl/perlreg.htm#UsingSimpleWildcards
+	if($result =~ /^([\/\w:\.-]+)\s+(\w+)\s+(\w+)\s+(\w+)\s+(\d+)\%.*$/)
+		{
+		# store results in either %fsData{'bytes'} or %fsData{'inodes'}
+		$$params{$$params{'target'}}{'total'}		= $2;
+		$$params{$$params{'target'}}{'used'}		= $3;
+		$$params{$$params{'target'}}{'available'}	= $4;
+		$$params{$$params{'target'}}{'usedPercent'}	= $5;
+		}
+	else
+		{ return 1; }
+
+	return 0;
+	}
+
+
+########################################## ##########################################################
+# POD
+########################################## ##########################################################
+
+=pod
+
+=head1 Synopsis
+
+=begin html
+
+<link rel="stylesheet" type="text/css" href="./plugins.css" />
+Plugin <span class="pluginName">check_ssh_linux_storage_inodes</span> : checks the specified filesystem for used space and inodes.<br />The same warning and critical thresholds are used for both the used space and the used inodes. The plugin gets space + inodes usage, gets the highest, and compares it to the thresholds to return is status code.
+
+=end html
+
+
+
+
+=head1 Dependencies
+
+	use strict;
+	use Nagios::Plugin;
+	use Nenm::Utils;
+
+
+
+
+=head1 Command line
+
+	check_ssh_linux_storage_inodes --host=[host] --login="[login]" --filesystem="[fileSystem]" -w [warn] -c [crit] --debug
+
+=over 4
+
+=item *
+
+-h | --host : IP address or hostname of Linux server to check. This plugin is able to run checks over SSH for remote hosts or directly on the local host if the "host" is one of : "localhost", "127.0.0.1" or the value returned by the 'hostname' command.
+
+=item *
+
+-l | --login : SSH login on target machine
+
+=item *
+
+-f | --filesystem : the filesystem to check for used space and used inodes
+
+=item *
+
+-w, -c : warning, critical thresholds in percentage. No '%' sign is necessary.
+
+=item *
+
+--debug : [optional] toggle the debug messages
+
+=back
+
+
+
+
+=head1 Output status
+
+=over 4
+
+=item *
+
+=begin html
+
+<span class="critical">CRITICAL</span> : when the percentage of used space OR of used inodes > critical threshold.
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="warning">WARNING</span> : when warning threshold < percentage of used space OR of used inodes < critical threshold.
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="ok">OK</span> : when the percentage of used space OR of used inodes < warning threshold.
+
+=end html
+
+=item *
+
+=begin html
+
+<span class="unknown">UNKNOWN</span> : when an error occurs while retrieving the used space or used inodes percentage on a remote host (SSH session)
+
+=end html
+
+=back
+
+
+
+
+=head1 Perfdata
+
+=begin html
+
+<span class="perfdata">used_bytes=[used_bytes]%;[warning value];[critical value]</span>
+<br /><br />
+<span class="perfdata">used_inodes=[used_inodes]%;[warning value];[critical value]</span>
+
+=end html
+
+
+
+
+=head1 Author
+
+Matthieu FOURNET (matthieu.fournet@orange.com)
+
+=cut
