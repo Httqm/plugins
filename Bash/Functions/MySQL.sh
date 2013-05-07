@@ -29,7 +29,6 @@
 getMySQLBinary() {
 	export mysqlBin=$(which mysql)
 	[ -z $mysqlBin ] && { exitPlugin 'No MySQL client found.' '' $STATE_UNKNOWN; }
-#	echo $mysqlBin
 	}
 
 
@@ -38,17 +37,12 @@ getMySQLBinary() {
 #
 # ARGUMENTS :
 #	arg1 (STRING) : MySQL query
+#	arg2 (STRING) : results file
 #
 # RETURN :
 #---------------------
 executeSqlQuery() {
-#	command="$mysqlBin -h \"$1\" -u \"$2\" -p\"$3\" \"$4\" -e \"$5\""
-#	command="$mysqlBin -h \"$1\" -u \"$2\" -p\"$3\" -e \"$5\""
-	command="$mysqlBin -h $OPT_MYSQLHOST -u $OPT_MYSQLUSER -p$OPT_MYSQLPASSWORD -e \"$1\" "
-	echo $command
-	$command &>/dev/null
-	returnCode=$?
-	echo "RETURN CODE : $returnCode"
+	$mysqlBin -h $OPT_MYSQLHOST -u $OPT_MYSQLUSER -p$OPT_MYSQLPASSWORD -e "$1" > $2
 	}
 
 
@@ -79,6 +73,7 @@ leaveScriptIfDbNotFound() {
 		{ exitPlugin "Database '$OPT_MYSQLDBNAME' not found on MySQL server '$OPT_MYSQLHOST'." '' $STATE_UNKNOWN; echo 'does not exist'; }
 	fi
 	}
+
 
 ########################################## ##########################################################
 # main()
