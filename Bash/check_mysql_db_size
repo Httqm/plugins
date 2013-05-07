@@ -1,24 +1,29 @@
 #!/bin/bash
 
 ######################################### check_mysql_db_size #######################################
-# FUNCTION :	Return the total number of MySQL processes (+alerts on thresholds),
-#				and the number of sleeping connections (for graph only)
+# FUNCTION :	Return the size of the specified database (+alerts on thresholds),
 #
 # AUTHOR :		Matthieu FOURNET (matthieu.fournet@orange.com)
 # LICENSE :		GPL - http://www.fsf.org/licenses/gpl.txt
 #
 # NOTES :		1. No need to add 'GRANT' privilege on 'information_schema' to the MySQL user :
 #					it'll work if the MySQL user has the 'SELECT' privilege on the selected database.
+#               2. This plugins requires a MySQL client. (Will complain if not found)
 #
 # COMMAND LINE :
 #				check_mysql_db_size -H <mysqlHost> -u "<mysqlUser>" -p "<mysqlPassword>" -d '<dbName>' -w <warn> -c <crit> -v
 #
-# VERSION :		20130501
+# VERSION :		20130507
 #
 # TODO :
 #	make POD-like doc
-#	make a functions file to be used with 'check_mysql_user_nb_process'
+#	make a functions file to be used with 'check_mysql_user_nb_process' (started ;-)
 ########################################## ##########################################################
+
+currentFolder=$(pwd)
+source ${currentFolder}/Functions/Common.sh
+source ${currentFolder}/Functions/MySQL.sh
+
 
 ########################################## ##########################################################
 # FUNCTIONS
@@ -50,28 +55,11 @@ GLOUBIBOULGA
 	}
 
 
-#---------------------
-# Show (or not) the perfdata, return the exit code and leave script
-# ARGUMENTS :
-#	arg1 (STRING) :	output message
-#	arg2 (STRING) : output perfdata
-#	arg3 (INT) : 	exit code
-#
-# RETURN : void
-#---------------------
-exitPlugin() {
-	outputMessage=$1;
-	outputPerfdata=$2;
-	exitCode=$3;
-
-	echo "$1|$2"	# i.e. : "outputMessage|outputPerfdata"
-	exit $exitCode
-	}
-
 # TODO : put this into common functions file. already defined in check_mysql_user_nb_process
 removeFirstLineOfFile() {
 	sed -i '1d' $1
 	}
+
 
 # TODO : put this into common functions file. already defined in check_mysql_user_nb_process
 # $1 : line. Must be protected from inner spaces : use ""
@@ -80,16 +68,11 @@ getFieldFromLine() {
 	echo $1 | cut -d ' ' -f $2
 	}
 
+
 ########################################## ##########################################################
 # /FUNCTIONS
 # CONFIG
 ########################################## ##########################################################
-STATE_OK=0
-STATE_WARNING=1
-STATE_CRITICAL=2
-STATE_UNKNOWN=3
-STATE_DEPENDENT=4
-
 OPT_VERBOSE=0
 
 exitCode=$STATE_OK
@@ -98,7 +81,6 @@ pluginPerfdata=''
 
 tmpFile="./tmp.$$"
 
-mysqlBin=$(which mysql)
 
 ########################################## ##########################################################
 # /CONFIG
@@ -110,16 +92,16 @@ while getopts 'hH:u:p:d:c:w:v' option;do	# http://man.cx/getopts
 			exitShowHelp
 			;;
 		H)
-			OPT_MYSQLHOST=$OPTARG
+			export OPT_MYSQLHOST=$OPTARG
 			;;
 		u)
-			OPT_MYSQLUSER=$OPTARG
+			export OPT_MYSQLUSER=$OPTARG
 			;;
 		p)
-			OPT_MYSQLPASSWORD=$OPTARG
+			export OPT_MYSQLPASSWORD=$OPTARG
 			;;
 		d)
-			OPT_MYSQLDBNAME=$OPTARG
+			export OPT_MYSQLDBNAME=$OPTARG
 			;;
 		c)
 			OPT_CRITICAL=$OPTARG
@@ -161,12 +143,16 @@ if [ $OPT_WARNING -gt $OPT_CRITICAL ]; then
 	 exitPlugin '[ERROR] WARNING must be less than CRITICAL.' '' 0 $STATE_UNKNOWN
 fi
 
+
+leaveScriptIfDbNotFound
+
+
 ########################################## ##########################################################
 # GETTING METRICS
 ########################################## ##########################################################
 mysqlQuery='SELECT table_schema AS dbName, ROUND(SUM( data_length + index_length ) / 1024 / 1024 ) AS dbSizeMb FROM information_schema.TABLES WHERE table_schema="'$OPT_MYSQLDBNAME'" GROUP BY table_schema;'
 
-$mysqlBin -h $OPT_MYSQLHOST -u $OPT_MYSQLUSER -p"$OPT_MYSQLPASSWORD" -e "$mysqlQuery" > $tmpFile
+executeSqlQuery "$mysqlQuery" $tmpFile
 
 # Creation of $tmpFile sometimes fails (?). Let's handle it !
 [ -f $tmpFile ] || exitPlugin "$tmpFile not found" '' $STATE_UNKNOWN
