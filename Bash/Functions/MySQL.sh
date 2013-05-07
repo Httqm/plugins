@@ -14,6 +14,10 @@
 # TODO :
 ########################################## ##########################################################
 
+########################################## ##########################################################
+# FUNCTIONS
+########################################## ##########################################################
+
 #---------------------
 # Identifies the MySQL client binary
 #
@@ -61,3 +65,22 @@ dbExists() {
 	returnCode=$?
 	[ $returnCode -eq 0 ] && echo true || echo false
 	}
+
+
+#---------------------
+# Leave script if the specified DB doesn't exist
+#
+# ARGUMENTS : (none)
+#
+# RETURN : (none)
+#---------------------
+leaveScriptIfDbNotFound() {
+	if ! $(dbExists "$OPT_MYSQLDBNAME"); then
+		{ exitPlugin "Database '$OPT_MYSQLDBNAME' not found on MySQL server '$OPT_MYSQLHOST'." '' $STATE_UNKNOWN; echo 'does not exist'; }
+	fi
+	}
+
+########################################## ##########################################################
+# main()
+########################################## ##########################################################
+getMySQLBinary
