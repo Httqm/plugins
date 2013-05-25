@@ -29,14 +29,13 @@ export STATE_DEPENDENT=4
 ########################################## ##########################################################
 
 #---------------------
-#
+# Convert a file size given as a string (12K, 23KB, 1.5GB, ...) into bytes.
 # ARGUMENTS :
 #	arg1 (STRING) :	human readable file size
 #
 # RETURN : (INT) size in bytes
+# NOTE : There must be no space between the number and the unit letter.
 #---------------------
-
-# /!\ THERE MUST BE NO SPACE BETWEEN THE NUMBER AND THE UNIT LETTER (IF ANY, OF COURSE)
 export INVALID_SIZE_STRING='Invalid size provided.'
 
 convertToBytes() {
@@ -65,7 +64,7 @@ convertToBytes() {
 # ARGUMENTS :
 #	arg1 (STRING) :	output message
 #	arg2 (STRING) : output perfdata
-#	arg3 (INT) : 	exit code
+#	arg3 (INT) :	exit code
 #
 # RETURN : void
 #---------------------
@@ -79,22 +78,18 @@ exitPlugin() {
 	}
 
 
-
-
-# TODO : format this
-
+#---------------------
 # Echo text messages in color.
-
-# $1 : color
-# $2 : message
-# $3 : bold 0|1
-
-# Examples :
-#colorEcho red "red, normal" 0
-#colorEcho red "red, bold" 1
-
-#colorEcho green "green, normal" 0
-#colorEcho green "green, bold" 1
+# ARGUMENTS :
+#	arg1 (STRING) :	color
+#	arg2 (STRING) :	message
+#	arg3 (INT) :	bold 0|1
+#
+# RETURN : void
+# EXAMPLES :
+#	colorEcho red "red, normal" 0
+#	colorEcho red "red, bold" 1
+#---------------------
 function colorEcho() {
 	bold=${3:-0}		# Defaults to "not bold", if not specified.
 
@@ -109,17 +104,8 @@ function colorEcho() {
 	colors['white']="\e[$bold;37m"
 	colors['reset']='\e[0m'	# Reset text attributes to normal without clearing screen.
 
-#	echo "couleur(1) : $1"
-#	echo "couleur(2) : ${colors[$1]}"
-#	echo "bold : $bold"
-
 	echo -e "${colors[$1]}$2${colors['reset']}"
 	}
-
-
-
-
-
 
 
 ########################################## ##########################################################
@@ -150,8 +136,8 @@ then
 		testString="$i"
 		expectedResult="${testData[$i]}"
 		echo -n "convertToBytes ('$testString') ... "
-		[ "$(convertToBytes $testString)" == "$expectedResult" ] && colorEcho green OK || colorEcho red KO
-		echo 'DEBUG : '$testString" ==> $(convertToBytes $testString)";echo
+		[ "$(convertToBytes $testString)" == "$expectedResult" ] && colorEcho green OK 1 || colorEcho red KO 1
+#		echo 'DEBUG : '$testString" ==> $(convertToBytes $testString)";echo
 	done
 	###################################### ##########################################################
 	# /convertToBytes
