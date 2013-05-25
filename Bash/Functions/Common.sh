@@ -23,20 +23,27 @@ export STATE_CRITICAL=2
 export STATE_UNKNOWN=3
 export STATE_DEPENDENT=4
 
+
 ########################################## ##########################################################
 # FUNCTIONS
 ########################################## ##########################################################
 
 #---------------------
-# 
+#
 # ARGUMENTS :
 #	arg1 (STRING) :	human readable file size
 #
 # RETURN : (INT) size in bytes
 #---------------------
+export INVALID_SIZE_STRING='Invalid size provided.'
+
 convertToBytes() {
 	# cleaning the input data
 	cleanInputString=$(echo $1 | tr ', ' '.')
+
+	# checking the input string is a file size
+	[[ ! "$cleanInputString" =~ ^[0-9]+(\.[0-9]+[KMGT])?$ ]] && { echo "$INVALID_SIZE_STRING";return; }
+
 	echo "|"$cleanInputString"|"
 	}
 
@@ -79,7 +86,7 @@ function colorEcho() {
 	bold=${3:-0}		# Defaults to "not bold", if not specified.
 
 	declare -A colors	# required to declare an associative array
-	
+
 	colors['red']="\e[$bold;31m"
 	colors['green']="\e[$bold;32m"
 	colors['yellow']="\e[$bold;33m"
@@ -108,7 +115,22 @@ function colorEcho() {
 if [ "$1" == '-t' ]
 then
 
-	echo -n 'convertToBytes '
-	[ "$(convertToBytes ' 1.2M ')" == '|1.2M|' ] && colorEcho green OK || colorEcho red KO
+	###################################### ##########################################################
+	# convertToBytes
+	###################################### ##########################################################
+	declare -A testData	# required to declare an associative array
+
+	testData['test']="$INVALID_SIZE_STRING"
+	testData[' 1,,2M ']="$INVALID_SIZE_STRING"
+	testData['1.2M']='|1.2M|'
+
+	for i in "${!testData[@]}"; do
+		testString="$i"
+		expectedResult="${testData[$i]}"
+		echo -n "convertToBytes ('$testString') ... "
+		[ "$(convertToBytes $testString)" == "$expectedResult" ] && colorEcho green OK || colorEcho red KO
+
+	done
 
 fi
+
