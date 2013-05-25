@@ -30,6 +30,31 @@ export okNoWarnString='NO WARN'
 ########################################## ##########################################################
 
 #---------------------
+# Extract a single field identified by its number from a line.
+# ARGUMENTS :
+#   arg1 (STRING) : line. Must be protected from inner spaces : use ""
+#   arg2 (INT) : field numbername of file to process
+#
+# RETURN : (STRING) field value
+#---------------------
+getFieldFromLine() {
+	echo $1 | cut -d ' ' -f $2
+	}
+
+
+#---------------------
+# Remove the first line a of string.
+# ARGUMENTS :
+#   arg1 (STRING) : name of file to process
+#
+# RETURN : void (file is overwritten)
+#---------------------
+removeFirstLineOfFile() {
+	sed -i '1d' $1
+	}
+
+
+#---------------------
 # Search a string (needle) within another string (haystack) and return found/not found as a boolean
 # ARGUMENTS :
 #   arg1 (STRING) : needle to search for

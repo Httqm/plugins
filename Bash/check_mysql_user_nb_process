@@ -1,92 +1,59 @@
 #!/bin/bash
 
 ######################################### check_mysql_user_nb_process ###############################
-# FUNCTION :	Return the total number of MySQL processes (+alerts on thresholds),
-#				and the number of sleeping connections (for graph only)
+# FUNCTION :    Return the total number of MySQL processes (+alerts on thresholds),
+#               and the number of sleeping connections (for graph only)
 #
-# AUTHOR :		Matthieu FOURNET (matthieu.fournet@orange.com)
-# LICENSE :		GPL - http://www.fsf.org/licenses/gpl.txt
+# AUTHOR :      Matthieu FOURNET (fournet.matthieu@gmail.com)
+# LICENSE :     GPL - http://www.fsf.org/licenses/gpl.txt
 #
-# NOTES :		1. running this plugin requires MySQL 'SELECT' grants on 'mysql.*' : grant select on mysql.* to 'shinken';
-#				2. this is based on the MySQL 'information_schema.PROCESSLIST', which is available from the 5.? MySQL version
+# NOTES :       1. running this plugin requires MySQL 'SELECT' grants on 'mysql.*' : grant select on mysql.* to 'shinken';
+#               2. this is based on the MySQL 'information_schema.PROCESSLIST', which is available from the 5.? MySQL version
 #
 # COMMAND LINE :
-#				check_mysql_user_nb_process -H <mysqlHost> -u "<mysqlUser>" -p "<mysqlPassword>" -w <warn> -c <crit> -v
+#               check_mysql_user_nb_process -H <mysqlHost> -u "<mysqlUser>" -p "<mysqlPassword>" -w <warn> -c <crit> -v
 #
-# VERSION :		20130501
-#
-# TODO :
-#	- documentation in exitShowHelp()
+# VERSION :     20130526
 ########################################## ##########################################################
+
+currentFolder=$(pwd)
+source ${currentFolder}/Functions/Common.sh
+source ${currentFolder}/Functions/MySQL.sh
+
 
 ########################################## ##########################################################
 # FUNCTIONS
 ########################################## ##########################################################
 #---------------------
 # Show the plugin help message.
-# ARGUMENTS :	none
-# RETURN : 		void
+# ARGUMENTS :   none
+# RETURN :      void
 #---------------------
-exitShowHelp() {
-	cat << GLOUBIBOULGA
-	FUNCTION:
-		- alert on the number of MySQL processes running (based on "show processlist;")
-		- return the number of sleeping processes (no alerts, graphs only)
+function exitShowHelp() {
+    cat << GLOUBIBOULGA
+    FUNCTION:
+        - alert on the number of MySQL processes running (based on "show processlist;")
+        - return the number of sleeping processes (no alerts, graphs only)
 
-	USAGE:
-		$0 -H <MySQL host> -u <MySQL user> -p <MySQL password> -w <warning> -c <critical>
+    USAGE:
+        $0 -H <MySQL host> -u <MySQL user> -p <MySQL password> -w <warning> -c <critical>
 
-	OPTIONS:
-		-h	Show this message
-		-H	MySQL host IP address or DNS name
-		-w	WARNING treshold
-		-c	CRITICAL treshold
-		-v	Verbose
+    OPTIONS:
+        -h    Show this message
+        -H    MySQL host IP address or DNS name
+        -u    MySQL user
+        -p    MySQL password
+        -w    WARNING treshold
+        -c    CRITICAL treshold
+        -v    Verbose
 GLOUBIBOULGA
-	exit $STATE_UNKNOWN
-	}
+    exit $STATE_UNKNOWN
+    }
 
-
-#---------------------
-# Show (or not) the perfdata, return the exit code and leave script
-# ARGUMENTS :
-#	arg1 (STRING) :	output message
-#	arg2 (STRING) : output perfdata
-#	arg3 (INT) : 	exit code
-#
-# RETURN : void
-#---------------------
-exitPlugin() {
-	outputMessage=$1;
-	outputPerfdata=$2;
-	exitCode=$3;
-
-	echo "$1|$2"	# i.e. : "outputMessage|outputPerfdata"
-	exit $exitCode
-	}
-
-
-removeFirstLineOfFile() {
-	sed -i '1d' $1
-	}
-
-
-# $1 : line. Must be protected from inner spaces : use ""
-# $2 : field number
-getFieldFromLine() {
-	echo $1 | cut -d ' ' -f $2
-	}
 
 ########################################## ##########################################################
-# /FUNCTIONS
 # CONFIG
 ########################################## ##########################################################
-STATE_OK=0
-STATE_WARNING=1
-STATE_CRITICAL=2
-STATE_UNKNOWN=3
-STATE_DEPENDENT=4
-
 OPT_VERBOSE=0
 
 exitCode=$STATE_OK
@@ -97,59 +64,60 @@ tmpFile="./tmp.$$"
 
 mysqlBin=$(which mysql)
 
+
 ########################################## ##########################################################
-# /CONFIG
 # USER INPUT VALIDATION
 ########################################## ##########################################################
-while getopts 'hH:u:p:c:w:v' option;do	# http://man.cx/getopts
-	case $option in
-		h)
-			exitShowHelp
-			;;
-		H)
-			OPT_MYSQLHOST=$OPTARG
-			;;
-		u)
-			OPT_MYSQLUSER=$OPTARG
-			;;
-		p)
-			OPT_MYSQLPASSWORD=$OPTARG
-			;;
-		c)
-			OPT_CRITICAL=$OPTARG
-			;;
-		w)
-			OPT_WARNING=$OPTARG
-			;;
-		v)
-			OPT_VERBOSE=1
-			;;
-		?)
-			exitShowHelp
-			exit
-			;;
-	 esac
+while getopts 'hH:u:p:c:w:v' option;do  # http://man.cx/getopts
+    case $option in
+        h)
+            exitShowHelp
+            ;;
+        H)
+            OPT_MYSQLHOST=$OPTARG
+            ;;
+        u)
+            OPT_MYSQLUSER=$OPTARG
+            ;;
+        p)
+            OPT_MYSQLPASSWORD=$OPTARG
+            ;;
+        c)
+            OPT_CRITICAL=$OPTARG
+            ;;
+        w)
+            OPT_WARNING=$OPTARG
+            ;;
+        v)
+            OPT_VERBOSE=1
+            ;;
+        ?)
+            exitShowHelp
+            exit
+            ;;
+     esac
 done
 
 if [ $OPT_VERBOSE -eq 1 ]; then
-	echo "[DEBUG] Options :
-	OPT_MYSQLHOST :		$OPT_MYSQLHOST
-	OPT_MYSQLUSER :		$OPT_MYSQLUSER
-	OPT_MYSQLPASSWORD :	$OPT_MYSQLPASSWORD
-	OPT_CRITICAL :		$OPT_CRITICAL
-	OPT_WARNING :		$OPT_WARNING
-	OPT_VERBOSE :		$OPT_VERBOSE
-	tmpFile :			$tmpFile"
+    echo "[DEBUG] Options :
+    OPT_MYSQLHOST :     $OPT_MYSQLHOST
+    OPT_MYSQLUSER :     $OPT_MYSQLUSER
+    OPT_MYSQLPASSWORD : $OPT_MYSQLPASSWORD
+    OPT_CRITICAL :      $OPT_CRITICAL
+    OPT_WARNING :       $OPT_WARNING
+    OPT_VERBOSE :       $OPT_VERBOSE
+    tmpFile :           $tmpFile"
 fi
 
 # checking options given to plugin
 if [ -z $OPT_WARNING ] || [ -z $OPT_CRITICAL ]; then
-	 exitPlugin '[ERROR] WARNING and CRITICAL parameters are mandatory.' '' 0 $STATE_UNKNOWN
+     exitPlugin '[ERROR] WARNING and CRITICAL parameters are mandatory.' '' 0 $STATE_UNKNOWN
 fi
 
 if [ $OPT_WARNING -gt $OPT_CRITICAL ]; then
-	 exitPlugin '[ERROR] WARNING must be less than CRITICAL.' '' 0 $STATE_UNKNOWN
+     exitPlugin '[ERROR] WARNING must be less than CRITICAL.' '' 0 $STATE_UNKNOWN
 fi
+
 
 ########################################## ##########################################################
 # GETTING METRICS
@@ -167,16 +135,16 @@ highestNbProcess=0
 highestUser=''
 
 while read line;do
-	userName=$(getFieldFromLine "$line" 1)
-	nbProcess=$(getFieldFromLine "$line" 2)
-	pluginPerfdata=${pluginPerfdata}${userName}'='${nbProcess}';'$OPT_WARNING';'$OPT_CRITICAL' '
+    userName=$(getFieldFromLine "$line" 1)
+    nbProcess=$(getFieldFromLine "$line" 2)
+    pluginPerfdata=${pluginPerfdata}${userName}'='${nbProcess}';'$OPT_WARNING';'$OPT_CRITICAL' '
 
-	if (( $nbProcess > $highestNbProcess ))
-	then
-		highestNbProcess=$nbProcess
-		highestUser=$userName
-	fi
+    if (( $nbProcess > $highestNbProcess )); then
+        highestNbProcess=$nbProcess
+        highestUser=$userName
+    fi
 done < $tmpFile
+
 
 ########################################## ##########################################################
 # Cleaning
@@ -188,22 +156,21 @@ done < $tmpFile
 # OUTPUT STATUS + PERFDATA
 ########################################## ##########################################################
 if (( $highestNbProcess < $OPT_WARNING ));then
-	exitCode=$STATE_OK
-	pluginOutput=$pluginOutput"OK : Max number of processes per user ($highestUser : $highestNbProcess) < Warning ($OPT_WARNING)"
+    exitCode=$STATE_OK
+    pluginOutput=$pluginOutput"OK : Max number of processes per user ($highestUser : $highestNbProcess) < Warning ($OPT_WARNING)"
 elif (( $highestNbProcess >= $OPT_CRITICAL ));then
-	exitCode=$STATE_CRITICAL
-	pluginOutput=$pluginOutput"CRITICAL : Max number of processes per user ($highestUser : $highestNbProcess) > Critical ($OPT_CRITICAL)"
+    exitCode=$STATE_CRITICAL
+    pluginOutput=$pluginOutput"CRITICAL : Max number of processes per user ($highestUser : $highestNbProcess) > Critical ($OPT_CRITICAL)"
 elif (( $highestNbProcess >= $OPT_WARNING )) && (( $highestNbProcess < $OPT_CRITICAL ));then
-	exitCode=$STATE_WARNING
-	pluginOutput=$pluginOutput"WARNING : Warning ($OPT_WARNING) < Max number of processes per user ($highestUser : $highestNbProcess) < Critical ($OPT_CRITICAL)"
+    exitCode=$STATE_WARNING
+    pluginOutput=$pluginOutput"WARNING : Warning ($OPT_WARNING) < Max number of processes per user ($highestUser : $highestNbProcess) < Critical ($OPT_CRITICAL)"
 fi
 
 exitPlugin "$pluginOutput" "$pluginPerfdata" $exitCode
 
 # perfdata format :
-#	'label'=value[UOM];[warn];[crit];[min];[max]
+#    'label'=value[UOM];[warn];[crit];[min];[max]
 # source : http://nagiosplug.sourceforge.net/developer-guidelines.html#AEN201
-
 
 ########################################## ##########################################################
 # the end!
