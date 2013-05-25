@@ -13,12 +13,14 @@
 # COMMAND LINE :
 #				check_mysql_db_size -H <mysqlHost> -u "<mysqlUser>" -p "<mysqlPassword>" -d '<dbName>' -w <warn> -c <crit> -v
 #
-# VERSION :		20130507
+# VERSION :		20130525
 #
 # TODO :
 #	make POD-like doc
 #	make a functions file to be used with 'check_mysql_user_nb_process' (started ;-)
 ########################################## ##########################################################
+
+. Functions/Common.sh
 
 currentFolder=$(pwd)
 source ${currentFolder}/Functions/Common.sh
@@ -176,7 +178,7 @@ dbMessage="Database '$dbName' size ($dbSizeMb MB)"
 
 if [ $OPT_WARNING -eq 0 ] && [ $OPT_CRITICAL -eq 0 ] ;then
 	exitCode=$STATE_OK
-	pluginOutput=$pluginOutput"NO WARN. $dbMessage"
+	pluginOutput=$pluginOutput"$okNoWarnString. $dbMessage"
 elif [ $dbSizeMb -lt $OPT_WARNING ];then
 	exitCode=$STATE_OK
 	pluginOutput=$pluginOutput"OK : $dbMessage < Warning ($OPT_WARNING MB)"

@@ -23,6 +23,7 @@ export STATE_CRITICAL=2
 export STATE_UNKNOWN=3
 export STATE_DEPENDENT=4
 
+export okNoWarnString='NO WARN'
 
 ########################################## ##########################################################
 # FUNCTIONS
