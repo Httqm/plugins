@@ -17,6 +17,8 @@
 # VERSION :		20130430
 ########################################## ##########################################################
 
+. Functions/Common.sh
+
 ########################################## ##########################################################
 # FUNCTIONS
 ########################################## ##########################################################
@@ -42,25 +44,6 @@ exitShowHelp() {
 		-v	Verbose
 GLOUBIBOULGA
 	exit $STATE_UNKNOWN
-	}
-
-
-#------------------------
-# Show (or not) the perfdata, return the exit code and leave script
-# ARGUMENTS :
-#	arg1 (STRING) :	output message
-#	arg2 (STRING) : output perfdata
-#	arg3 (INT) : 	exit code
-#
-# RETURN : void
-#------------------------
-exitPlugin() {
-	outputMessage=$1;
-	outputPerfdata=$2;
-	exitCode=$3;
-
-	echo "$1|$2"	# i.e. : "outputMessage|outputPerfdata"
-	exit $exitCode
 	}
 
 

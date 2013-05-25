@@ -17,8 +17,10 @@
 #               check_web_internal.sh -H "<siteName>" -s "<webServer>" -p "<webPage>" -m "<keyword>"
 #               check_web_internal.sh -H "www.google.fr" -s "74.125.232.151" -p "/" -m "Search"
 #
-# VERSION :     20130501
+# VERSION :     20130525
 ########################################## ##########################################################
+
+. Functions/Common.sh
 
 ########################################## ##########################################################
 # FUNCTIONS
@@ -54,25 +56,6 @@ GLOUBIBOULGA
 
 
 #---------------------
-# Show the perfdata, return the exit code and leave script
-# ARGUMENTS :
-#   arg1 (STRING) : output message
-#   arg2 (STRING) : output perfdata
-#   arg3 (INT)    : exit code
-#
-# RETURN : void
-#---------------------
-function exitPlugin() {
-    outputMessage=$1;
-    outputPerfdata=$2;
-    exitCode=$3;
-
-    echo "$1|$2" # i.e. : "outputMessage|outputPerfdata"
-    exit $exitCode
-    }
-
-
-#---------------------
 # Get a page from the given webserver using HTTP headers
 # ARGUMENTS :
 #   arg1 (STRING) : HTTP host header
@@ -87,30 +70,10 @@ function getPage() {
     }
 
 
-#---------------------
-# Search a string (needle) within another string (haystack) and return found/not found as a boolean
-# ARGUMENTS :
-#   arg1 (STRING) : needle to search for
-#   arg2 (STRING) : haystack to search into
-#
-# RETURN : "needle was found in haystack" (boolean)
-#---------------------
-function stringIsFound() {
-    nbMatchingLines=$(echo "$2" | grep -c "$1")
-    [ $nbMatchingLines -eq 0 ] && isFound=false || isFound=true
-    echo $isFound
-    }
-
 ########################################## ##########################################################
 # /FUNCTIONS
 # CONFIG
 ########################################## ##########################################################
-STATE_OK=0
-STATE_WARNING=1
-STATE_CRITICAL=2
-STATE_UNKNOWN=3
-STATE_DEPENDENT=4
-
 OPT_VERBOSE=0
 
 exitCode=$STATE_OK
