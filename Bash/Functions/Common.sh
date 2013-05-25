@@ -35,17 +35,30 @@ export STATE_DEPENDENT=4
 #
 # RETURN : (INT) size in bytes
 #---------------------
+
+# /!\ THERE MUST BE NO SPACE BETWEEN THE NUMBER AND THE UNIT LETTER (IF ANY, OF COURSE)
 export INVALID_SIZE_STRING='Invalid size provided.'
 
 convertToBytes() {
-	# cleaning the input data
-	cleanInputString=$(echo $1 | tr ', ' '.')
+	# cleaning the input data (locales, ...)
+	cleanInputString=$(echo $1 | tr ',' '.')
 
 	# checking the input string is a file size
-	[[ ! "$cleanInputString" =~ ^[0-9]+(\.[0-9]+[KMGT])?$ ]] && { echo "$INVALID_SIZE_STRING";return; }
+	[[ ! "$cleanInputString" =~ ^[0-9]+(\.[0-9]+)?[KMGT]?B?$ ]] && { echo "$INVALID_SIZE_STRING";return; }
 
-	echo "|"$cleanInputString"|"
+	# converting
+	cleanInputString=$(echo $cleanInputString | sed 's/B//')
+	[[ "$cleanInputString" =~ [0-9]$ ]] && cleanInputString="${cleanInputString}B"	# to avoid special case hereafter
+
+	[[ "$cleanInputString" =~ B$ ]] && power=0
+	[[ "$cleanInputString" =~ K$ ]] && power=1
+	[[ "$cleanInputString" =~ M$ ]] && power=2
+	[[ "$cleanInputString" =~ G$ ]] && power=3
+	[[ "$cleanInputString" =~ T$ ]] && power=4
+
+	echo $cleanInputString | sed "s/[BKMGT]/*\(1024^$power\)/" | bc
 	}
+
 
 #---------------------
 # Show (or not) the perfdata, return the exit code and leave script
@@ -121,16 +134,27 @@ then
 	declare -A testData	# required to declare an associative array
 
 	testData['test']="$INVALID_SIZE_STRING"
-	testData[' 1,,2M ']="$INVALID_SIZE_STRING"
-	testData['1.2M']='|1.2M|'
+	testData['3X']="$INVALID_SIZE_STRING"
+	testData['1,,2M']="$INVALID_SIZE_STRING"
+	testData['1.2M']='1258291.2'
+	testData['42']='42'
+	testData['42B']='42'
+	testData['42K']='43008'
+	testData['42KB']='43008'
+	testData['42M']='44040192'
+	testData['42MB']='44040192'
+	testData['42G']='45097156608'
+	testData['42GB']='45097156608'
 
 	for i in "${!testData[@]}"; do
 		testString="$i"
 		expectedResult="${testData[$i]}"
 		echo -n "convertToBytes ('$testString') ... "
 		[ "$(convertToBytes $testString)" == "$expectedResult" ] && colorEcho green OK || colorEcho red KO
-
+		echo 'DEBUG : '$testString" ==> $(convertToBytes $testString)";echo
 	done
+	###################################### ##########################################################
+	# /convertToBytes
+	###################################### ##########################################################
 
 fi
-
