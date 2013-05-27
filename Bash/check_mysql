@@ -14,10 +14,15 @@
 # COMMAND LINE :
 #				check_mysql -H <mysqlHost> -u "<mysqlUser>" -p "<mysqlPassword>" -w <warn> -c <crit> -v
 #
-# VERSION :		20130430
+# VERSION :		20130527
 ########################################## ##########################################################
 
-. Functions/Common.sh
+
+absolutePathToCurrentFile=$(cd $(dirname "$0"); pwd)
+source "${absolutePathToCurrentFile}/Functions/Common.sh"
+source "${absolutePathToCurrentFile}/Functions/MySQL.sh"
+# source : http://stackoverflow.com/questions/192292/bash-how-best-to-include-other-scripts#answer-992855
+
 
 ########################################## ##########################################################
 # FUNCTIONS
@@ -48,15 +53,8 @@ GLOUBIBOULGA
 
 
 ########################################## ##########################################################
-# /FUNCTIONS
 # CONFIG
 ########################################## ##########################################################
-STATE_OK=0
-STATE_WARNING=1
-STATE_CRITICAL=2
-STATE_UNKNOWN=3
-STATE_DEPENDENT=4
-
 OPT_VERBOSE=0
 
 exitCode=$STATE_OK
@@ -65,10 +63,8 @@ pluginPerfdata=''
 
 tmpFile="tmp.$$"
 
-mysqlBin=$(which mysql)
 
 ########################################## ##########################################################
-# /CONFIG
 # USER INPUT VALIDATION
 ########################################## ##########################################################
 while getopts 'hH:u:p:c:w:v' option;do	# http://man.cx/getopts
