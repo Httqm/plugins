@@ -108,16 +108,16 @@ while getopts 'h:u:w:c:v' option;do # http://man.cx/getopts
      esac
 done
 
-checkPluginParameter "$OPT_WARNING" 'warning (-w)' '^[0-9]+(\.[0-9]+)?[BKMGT]?$'
+checkPluginParameter "$OPT_WARNING"  'warning (-w)'  '^[0-9]+(\.[0-9]+)?[BKMGT]?$'
 checkPluginParameter "$OPT_CRITICAL" 'critical (-c)' '^[0-9]+(\.[0-9]+)?[BKMGT]?$'
-checkPluginParameter "$OPT_URL" 'URL : -u' '^http://.*'
+checkPluginParameter "$OPT_URL"      'URL : -u'      '^http://.*'
 
 # TODO : check URL can be fetched by wget (?)
 
 warningThresholdBytes=$(convertToBytes $OPT_WARNING)
 criticalThresholdBytes=$(convertToBytes $OPT_CRITICAL)
 
-# TODO : check warning < critical
+checkWarningIsLessThanCritical $warningThresholdBytes $criticalThresholdBytes
 
 [ $OPT_VERBOSE -eq 1 ] && echo "[DEBUG] Options :
     OPT_URL         : $OPT_URL
