@@ -9,7 +9,7 @@
 # NOTES :       1. Start this script with the '-t' flag to launch unit tests
 #
 #
-# VERSION :     20130525
+# VERSION :     20130603
 #
 # TODO :
 ########################################## ##########################################################
@@ -28,6 +28,22 @@ export okNoWarnString='NO WARN'
 ########################################## ##########################################################
 # FUNCTIONS
 ########################################## ##########################################################
+
+
+#---------------------
+# Make sure the warning threshold is effectively < the critical threshold.
+# ARGUMENTS :
+#   arg1 (FLOAT) : warning threshold
+#   arg2 (FLOAT) : critical threshold
+#
+# RETURN : void (exit on error)
+#---------------------
+function checkWarningIsLessThanCritical() {
+    [ $1 -ge $2 ] && {
+        echo;echo "    Warning must be < than critical.";echo
+        exitShowHelp
+        }
+    }
 
 
 #---------------------
