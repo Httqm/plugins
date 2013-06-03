@@ -17,10 +17,11 @@
 #               check_web_internal.sh -H "<siteName>" -s "<webServer>" -p "<webPage>" -m "<keyword>"
 #               check_web_internal.sh -H "www.google.fr" -s "74.125.232.151" -p "/" -m "Search"
 #
-# VERSION :     20130525
+# VERSION :     20130603
 ########################################## ##########################################################
 
-. Functions/Common.sh
+absolutePathToCurrentFile=$(cd $(dirname "$0"); pwd)
+source "${absolutePathToCurrentFile}/Functions/Common.sh"
 
 ########################################## ##########################################################
 # FUNCTIONS

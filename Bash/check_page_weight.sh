@@ -13,10 +13,11 @@
 #               check_page_weight.sh -u "<URL of page to check>" -w "<warn>" -c "<crit>"
 #               check_page_weight.sh -u "http://www.google.com" -w 50KB -c 100KB -v
 #
-# VERSION :     20130525
+# VERSION :     20130603
 ########################################## ##########################################################
 
-. Functions/Common.sh
+absolutePathToCurrentFile=$(cd $(dirname "$0"); pwd)
+source "${absolutePathToCurrentFile}/Functions/Common.sh"
 
 ########################################## ##########################################################
 # FUNCTIONS
