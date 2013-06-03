@@ -107,6 +107,13 @@ while getopts 'h:u:w:c:v' option;do # http://man.cx/getopts
      esac
 done
 
+# TODO : optimize this without copy-paste ==> user input validation function ?
+[ -z $OPT_WARNING ] && { exitShowHelp;exit 1; }
+[ -z $OPT_CRITICAL ] && { exitShowHelp;exit 1; }
+[ -z $OPT_URL ] && { exitShowHelp;exit 1; }
+#TODO : make sure $OPT_URL is a URL. If the provided URL is "aaa", no page is analyzed, and $humanReadablePageWeight is an empty string.
+
+
 warningThresholdBytes=$(convertToBytes $OPT_WARNING)
 criticalThresholdBytes=$(convertToBytes $OPT_CRITICAL)
 
