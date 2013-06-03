@@ -29,6 +29,24 @@ export okNoWarnString='NO WARN'
 # FUNCTIONS
 ########################################## ##########################################################
 
+
+#---------------------
+# Check a plugin parameter against a validating RegExp.
+# ARGUMENTS :
+#   arg1 (STRING) : parameter value.
+#   arg2 (STRING) : parameter 'display name' (for error message only).
+#   arg3 (STRING) : parameter validation RegEx.
+#
+# RETURN : void (exit on error)
+#---------------------
+function checkPluginParameter() {
+    [[ ! "$1" =~ $3 ]] && {
+        echo;echo "    Wrong value for parameter $2 : '$1'.";echo
+        exitShowHelp
+        }
+    }
+
+
 #---------------------
 # Extract a single field identified by its number from a line.
 # ARGUMENTS :
@@ -37,9 +55,9 @@ export okNoWarnString='NO WARN'
 #
 # RETURN : (STRING) field value
 #---------------------
-getFieldFromLine() {
-	echo $1 | cut -d ' ' -f $2
-	}
+function getFieldFromLine() {
+    echo $1 | cut -d ' ' -f $2
+    }
 
 
 #---------------------
@@ -49,9 +67,9 @@ getFieldFromLine() {
 #
 # RETURN : void (file is overwritten)
 #---------------------
-removeFirstLineOfFile() {
-	sed -i '1d' $1
-	}
+function removeFirstLineOfFile() {
+    sed -i '1d' $1
+    }
 
 
 #---------------------
@@ -79,7 +97,7 @@ function stringIsFound() {
 #---------------------
 export INVALID_SIZE_STRING='Invalid size provided.'
 
-convertToBytes() {
+function convertToBytes() {
     # cleaning the input data (locales, ...)
     cleanInputString=$(echo $1 | tr ',' '.')
 
@@ -109,7 +127,7 @@ convertToBytes() {
 #
 # RETURN : void
 #---------------------
-exitPlugin() {
+function exitPlugin() {
     outputMessage=$1;
     outputPerfdata=$2;
     exitCode=$3;
