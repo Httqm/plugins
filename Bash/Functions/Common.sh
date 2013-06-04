@@ -8,10 +8,7 @@
 #
 # NOTES :       1. Start this script with the '-t' flag to launch unit tests
 #
-#
-# VERSION :     20130603
-#
-# TODO :
+# VERSION :     20130604
 ########################################## ##########################################################
 
 ########################################## ##########################################################
@@ -35,7 +32,7 @@ export okNoWarnString='NO WARN'
 # ARGUMENTS :
 #   arg1 (FLOAT) : number to be rounded
 #
-# RETURN : INT Rounded number
+# RETURN : (INT) Rounded number
 #---------------------
 function round() {
     # Source : http://www.alecjacobson.com/weblog/?p=256
@@ -136,7 +133,7 @@ function convertToBytes() {
 
     # converting
     cleanInputString=$(echo $cleanInputString | sed 's/B//')
-    [[ "$cleanInputString" =~ [0-9]$ ]] && cleanInputString="${cleanInputString}B"    # to avoid special case hereafter
+    [[ "$cleanInputString" =~ [0-9]$ ]] && cleanInputString="${cleanInputString}B"  # to avoid special case hereafter
 
     [[ "$cleanInputString" =~ B$ ]] && power=0
     [[ "$cleanInputString" =~ K$ ]] && power=1
@@ -144,7 +141,8 @@ function convertToBytes() {
     [[ "$cleanInputString" =~ G$ ]] && power=3
     [[ "$cleanInputString" =~ T$ ]] && power=4
 
-    echo $cleanInputString | sed "s/[BKMGT]/*\(1024^$power\)/" | bc
+    nbBytes=$(echo $cleanInputString | sed "s/[BKMGT]/*\(1024^$power\)/" | bc)  # This may be a float, hence the 'round' below.
+    echo $(round $nbBytes)
     }
 
 
@@ -211,15 +209,18 @@ then
     testData['test']="$INVALID_SIZE_STRING"
     testData['3X']="$INVALID_SIZE_STRING"
     testData['1,,2M']="$INVALID_SIZE_STRING"
-    testData['1.2M']='1258291.2'
+    testData['1.2M']='1258291'
     testData['42']='42'
+    testData['12.34']='12'
     testData['42B']='42'
     testData['42K']='43008'
     testData['42KB']='43008'
+    testData['42.4242KB']='43442'
     testData['42M']='44040192'
     testData['42MB']='44040192'
     testData['42G']='45097156608'
     testData['42GB']='45097156608'
+    testData['12.34GB']='13249974108'
 
     for i in "${!testData[@]}"; do
         testString="$i"
