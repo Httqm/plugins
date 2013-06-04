@@ -31,6 +31,20 @@ export okNoWarnString='NO WARN'
 
 
 #---------------------
+# Perform an arithmetic round on the input value into an integer.
+# ARGUMENTS :
+#   arg1 (FLOAT) : number to be rounded
+#
+# RETURN : INT Rounded number
+#---------------------
+function round() {
+    # Source : http://www.alecjacobson.com/weblog/?p=256
+    # The "+0.5" hack is there because "bc" 'floors' but doesn't 'round'
+    echo "($1+0.5)/1" | bc
+    }
+
+
+#---------------------
 # Make sure the warning threshold is effectively < the critical threshold.
 # ARGUMENTS :
 #   arg1 (FLOAT) : warning threshold
@@ -192,7 +206,7 @@ then
     ###################################### ##########################################################
     # convertToBytes
     ###################################### ##########################################################
-    declare -A testData     # required to declare an associative array
+    declare -A testData # declares an associative array
 
     testData['test']="$INVALID_SIZE_STRING"
     testData['3X']="$INVALID_SIZE_STRING"
@@ -214,8 +228,33 @@ then
         [ "$(convertToBytes $testString)" == "$expectedResult" ] && colorEcho green OK 1 || colorEcho red KO 1
 #        echo 'DEBUG : '$testString" ==> $(convertToBytes $testString)";echo
     done
+    unset testData
     ###################################### ##########################################################
     # /convertToBytes
+    ###################################### ##########################################################
+
+    ###################################### ##########################################################
+    # round
+    ###################################### ##########################################################
+    declare -A testData # declares an associative array
+
+    testData['0']=0
+    testData['1']=1
+    testData['1.4']=1
+    testData['1.6']=2
+    testData['123456789.123456789']=123456789
+    testData['1.50000000000']=2
+
+    for i in "${!testData[@]}"; do
+        testValue="$i"
+        expectedResult="${testData[$i]}"
+        echo -n "round ('$testValue') ... "
+        [ "$(round $testValue)" == "$expectedResult" ] && colorEcho green OK 1 || colorEcho red KO 1
+#        echo 'DEBUG : '$testValue" ==> $(round $testValue)";echo
+    done
+    unset testData
+    ###################################### ##########################################################
+    # /round
     ###################################### ##########################################################
 
 fi
