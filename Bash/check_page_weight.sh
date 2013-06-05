@@ -7,13 +7,16 @@
 # AUTHOR :      Matthieu FOURNET (matthieu.fournet@orange.com)
 # LICENSE :     GPL - http://www.fsf.org/licenses/gpl.txt
 #
-# NOTES :       1.
+# NOTES :       1. All computation is made assuming 1KB = 1024 bytes (and so on for MB, GB, ...)
+#               2. This plugin outputs page weight in bytes, but external graphing tools may
+#                  accommodate their Y-scale assuming 1KB = 1000 bytes, i.e. :
+#                  654321 B = 639 KB (1 KB = 1024 B), but may be graphed as 654 KB (1 KB = 1000 B).
 #
 # COMMAND LINE :
 #               check_page_weight.sh -u "<URL of page to check>" -w "<warn>" -c "<crit>"
 #               check_page_weight.sh -u "http://www.google.com" -w 50KB -c 100KB -v
 #
-# VERSION :     20130603
+# VERSION :     20130605
 ########################################## ##########################################################
 
 absolutePathToCurrentFile=$(cd $(dirname "$0"); pwd)
