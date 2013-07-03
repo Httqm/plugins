@@ -25,7 +25,7 @@
 #               check_page_weight.sh -u "<URL of page to check>" -d "domains" -w "<warn>" -c "<crit>"
 #               check_page_weight.sh -u "http://www.example.com" -d "static.example.com,www2.example.com" -w 50KB -c 100KB -v
 #
-# VERSION :     20130613
+# VERSION :     20130703
 ########################################## ##########################################################
 
 absolutePathToCurrentFile=$(cd $(dirname "$0"); pwd)
@@ -175,7 +175,7 @@ elif [ $pageWeightBytes -ge $criticalThresholdBytes ];then
     pluginOutput=$pluginOutput"CRITICAL : Page weight ($humanReadablePageWeight) >= $OPT_CRITICAL"
 fi
 
-pluginPerfdata="pageWeight=${pageWeightBytes}Bytes;$warningThresholdBytes;$criticalThresholdBytes"
+pluginPerfdata="pageWeight=${pageWeightBytes}B;$warningThresholdBytes;$criticalThresholdBytes"
 exitPlugin "$pluginOutput" "$pluginPerfdata" $exitCode
 
 # perfdata format :
