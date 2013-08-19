@@ -21,7 +21,7 @@
 #                  accommodate their Y-scale assuming 1KB = 1000 bytes, i.e. :
 #                  654321 B = 639 KB (1 KB = 1024 B), but may be graphed as 654 KB (1 KB = 1000 B).
 #               4. Canopsis (www.canopsis.org) is so smart it can handle "binary kilos"
-#                  (1K-anything = 1024 anything) provided the unit of measurement is given as 'b' (for 'bytes')
+#                  (1K-anything = 1024 anything) provided the unit of measurement is given as 'B' (for 'bytes')
 #
 # COMMAND LINE :
 #               check_page_weight.sh -u "<URL of page to check>" -d "domains" -w "<warn>" -c "<crit>"
@@ -177,7 +177,7 @@ elif [ $pageWeightBytes -ge $criticalThresholdBytes ];then
     pluginOutput=$pluginOutput"CRITICAL : Page weight ($humanReadablePageWeight) >= $OPT_CRITICAL"
 fi
 
-pluginPerfdata="pageWeight=${pageWeightBytes}b;$warningThresholdBytes;$criticalThresholdBytes"
+pluginPerfdata="pageWeight=${pageWeightBytes}B;$warningThresholdBytes;$criticalThresholdBytes"
 exitPlugin "$pluginOutput" "$pluginPerfdata" $exitCode
 
 # perfdata format :
