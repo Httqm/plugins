@@ -15,17 +15,19 @@
 #                  these domains won't be retrieved (with wget default options) as following links
 #                  carelessly may lead to downloading the whole Internets :-(
 #                  To get content from these domains, the "-d" parameter of this plugin instructs
-#                  wget to content content from the listed domains only.
+#                  wget to download content from the listed domains only.
 #               2. All computation is made assuming 1KB = 1024 bytes (and so on for MB, GB, ...)
 #               3. This plugin outputs page weight in bytes, but external graphing tools may
 #                  accommodate their Y-scale assuming 1KB = 1000 bytes, i.e. :
 #                  654321 B = 639 KB (1 KB = 1024 B), but may be graphed as 654 KB (1 KB = 1000 B).
+#               4. Canopsis (www.canopsis.org) is so smart it can handle "binary kilos"
+#                  (1K-anything = 1024 anything) provided the unit of measurement is given as 'b' (for 'bytes')
 #
 # COMMAND LINE :
 #               check_page_weight.sh -u "<URL of page to check>" -d "domains" -w "<warn>" -c "<crit>"
 #               check_page_weight.sh -u "http://www.example.com" -d "static.example.com,www2.example.com" -w 50KB -c 100KB -v
 #
-# VERSION :     20130613
+# VERSION :     20130819
 ########################################## ##########################################################
 
 absolutePathToCurrentFile=$(cd $(dirname "$0"); pwd)
@@ -175,7 +177,7 @@ elif [ $pageWeightBytes -ge $criticalThresholdBytes ];then
     pluginOutput=$pluginOutput"CRITICAL : Page weight ($humanReadablePageWeight) >= $OPT_CRITICAL"
 fi
 
-pluginPerfdata="pageWeight=${pageWeightBytes}Bytes;$warningThresholdBytes;$criticalThresholdBytes"
+pluginPerfdata="pageWeight=${pageWeightBytes}b;$warningThresholdBytes;$criticalThresholdBytes"
 exitPlugin "$pluginOutput" "$pluginPerfdata" $exitCode
 
 # perfdata format :
